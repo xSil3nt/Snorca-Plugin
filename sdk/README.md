@@ -58,7 +58,7 @@ Plugins are loaded from:
 
 - `IWipeTowerPathWriter` — path emission surface for plugin overrides
 - `WipeTowerTypes.hpp` — shared contexts and `WipeTowerHostServices`
-- Optional virtual hooks on `IWipeTowerShape` (`generate_sparse_scaffold`, `generate_toolchange_wipe`, etc.) return `false` by default until the host wires them in.
+- Optional virtual hooks on `IWipeTowerShape` (`generate_sparse_scaffold`, `generate_toolchange_wipe`, etc.) return `false` by default; the host delegates to plugins when they return `true`.
 
 ## Examples
 
@@ -70,6 +70,16 @@ Build examples from the Orca tree:
 cmake -S . -B build -DORCA_BUILD_EXAMPLE_PLUGINS=ON
 cmake --build build --target orca_round_prime_tower
 ```
+
+## Future extensions
+
+The round prime tower example demonstrates wipe-tower plugins only. The SDK also exposes registries for broader features (documented here; deep APIs may require host rebuilds today):
+
+- **Wall generators** (`IWallGenerator` / `WallGeneratorRegistry`): custom perimeter strategies such as wave or arc overhang walls. Register a generator key and wire it through host print settings when the GUI surface is extended.
+- **Slicing hooks** (`SlicingHookBus`): `BeforePrintObjectStep` / `AfterPrintObjectStep` at slice, perimeter, and infill boundaries; `BeforePrintStep` / `AfterPrintStep` at print scope; `AfterGCodeExport` after export.
+- **Infill providers** (`InfillProviderRegistry`): custom infill pattern factories (host-dev surface; standalone infill API deferred).
+
+See [docs/wipe_tower_shape.md](docs/wipe_tower_shape.md) for a wipe-tower plugin tutorial.
 
 ## ABI policy
 
