@@ -13,8 +13,9 @@ add_executable(${_TEST_NAME}_tests
 	test_mixed_filament.cpp
 	test_triangle_selector.cpp
 	test_local_z_order_optimizer.cpp
-	test_placeholder_parser.cpp
-	test_polygon.cpp
+    test_placeholder_parser.cpp
+    test_plugin_system.cpp
+    test_polygon.cpp
 	test_mutable_polygon.cpp
 	test_mutable_priority_queue.cpp
 	test_stl.cpp

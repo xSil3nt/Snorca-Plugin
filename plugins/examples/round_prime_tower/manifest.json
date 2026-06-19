@@ -1,0 +1,13 @@
+{
+    "id": "orca.round_prime_tower",
+    "name": "Round Prime Tower",
+    "version": "1.0.0",
+    "author": "Snapmaker Orca",
+    "abi_version": 1,
+    "min_app_version": "0.0.0",
+    "entry_library": "orca_round_prime_tower",
+    "extension_points": ["wipe_tower_shape", "config_schema", "gui"],
+    "config_keys": ["wipe_tower_wall_type"],
+    "preset_types": ["print"],
+    "invalidation_keys": ["wipe_tower_wall_type"]
+}

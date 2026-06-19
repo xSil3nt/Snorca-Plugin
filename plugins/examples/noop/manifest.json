@@ -1,0 +1,9 @@
+{
+    "id": "orca.noop",
+    "name": "Orca No-op Plugin",
+    "version": "1.0.0",
+    "author": "Snapmaker Orca",
+    "abi_version": 1,
+    "entry_library": "orca_noop",
+    "extension_points": []
+}
