@@ -11,6 +11,8 @@
 #include <sstream>
 #include <tbb/parallel_for.h>
 #include "ClipperUtils.hpp"
+#include "Plugin/PluginManager.hpp"
+#include "Plugin/SlicingHookBus.hpp"
 #include "ElephantFootCompensation.hpp"
 #include "I18N.hpp"
 #include "Layer.hpp"
@@ -811,6 +813,8 @@ void PrintObject::slice()
 {
     if (! this->set_started(posSlice))
         return;
+    PluginManager::instance().slicing_hooks().fire(
+        SlicingHookPhase::BeforePrintObjectStep, make_slicing_hook_context(this, posSlice));
     //BBS: add flag to reload scene for shell rendering
     m_print->set_status(5, L("Slicing mesh"), PrintBase::SlicingStatus::RELOAD_SCENE);
     std::vector<coordf_t> layer_height_profile;
@@ -867,6 +871,8 @@ void PrintObject::slice()
 
     // BBS
     this->set_done(posSlice);
+    PluginManager::instance().slicing_hooks().fire(
+        SlicingHookPhase::AfterPrintObjectStep, make_slicing_hook_context(this, posSlice));
 }
 
 static bool bool_from_full_config(const DynamicPrintConfig &full_cfg, const char *key, bool fallback)

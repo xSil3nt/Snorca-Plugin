@@ -15,6 +15,7 @@ add_executable(${_TEST_NAME}_tests
 	test_local_z_order_optimizer.cpp
     test_placeholder_parser.cpp
     test_plugin_system.cpp
+    test_plugin_wipe_tower_api.cpp
     test_polygon.cpp
 	test_mutable_polygon.cpp
 	test_mutable_priority_queue.cpp

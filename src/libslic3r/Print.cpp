@@ -2472,7 +2472,15 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
     if (!use_cache) {
         for (PrintObject *obj : m_objects) {
             if (need_slicing_objects.count(obj) != 0) {
+                {
+                    SlicingHookContext hook_ctx = make_slicing_hook_context(obj, posSlice);
+                    PluginManager::instance().slicing_hooks().fire(SlicingHookPhase::BeforePrintObjectStep, hook_ctx);
+                }
                 obj->make_perimeters();
+                {
+                    SlicingHookContext hook_ctx = make_slicing_hook_context(obj, posPerimeters);
+                    PluginManager::instance().slicing_hooks().fire(SlicingHookPhase::AfterPrintObjectStep, hook_ctx);
+                }
             }
             else {
                 if (obj->set_started(posSlice))

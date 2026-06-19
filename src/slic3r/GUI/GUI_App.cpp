@@ -3,6 +3,7 @@
 #include "GUI_App.hpp"
 #include "Plugin/PluginGUIIntegration.hpp"
 #include "libslic3r/Plugin/PluginLoader.hpp"
+#include "libslic3r/Plugin/PluginManager.hpp"
 #include "GUI_Init.hpp"
 #include "GUI_ObjectList.hpp"
 #include "GUI_Factories.hpp"
@@ -2525,6 +2526,8 @@ int GUI_App::OnExit()
     } catch (...) {
         BOOST_LOG_TRIVIAL(error) << "Failed to clean up encrypt bbl network log file";
     }
+
+    PluginManager::instance().shutdown();
 
     return wxApp::OnExit();
 }
