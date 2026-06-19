@@ -649,13 +649,9 @@ include_directories(BEFORE SYSTEM ${EIGEN3_INCLUDE_DIR})
 find_package(EXPAT)
 
 if (NOT EXPAT_FOUND)
-    add_library(expat STATIC
-        ${LIBDIR}/expat/xmlparse.c
-        ${LIBDIR}/expat/xmlrole.c
-        ${LIBDIR}/expat/xmltok.c
-    )
+    # Bundled expat is built from deps_src/expat; avoid defining the target twice.
     set(EXPAT_FOUND 1)
-    set(EXPAT_INCLUDE_DIRS ${LIBDIR}/expat/)
+    set(EXPAT_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/deps_src/expat)
     set(EXPAT_LIBRARIES expat)
 endif ()
 

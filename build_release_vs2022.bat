@@ -59,8 +59,13 @@ cd %WP%
 mkdir %build_dir%
 cd %build_dir%
 
+set "STRAWBERRY_CMAKE_ARGS="
+if exist "C:\Strawberry\c\include\iconv.h" (
+    set "STRAWBERRY_CMAKE_ARGS=-DIconv_INCLUDE_DIR=C:/Strawberry/c/include -DIconv_LIBRARY=C:/Strawberry/c/lib/libiconv.a -DBZIP2_INCLUDE_DIR=C:/Strawberry/c/include -DBZIP2_LIBRARY_RELEASE=C:/Strawberry/c/lib/libbz2.a -DLIBLZMA_INCLUDE_DIR=C:/Strawberry/c/include -DLIBLZMA_LIBRARY=C:/Strawberry/c/lib/liblzma.a"
+)
+
 echo on
-cmake .. -G "Visual Studio 17 2022" -A x64 -DBBL_RELEASE_TO_PUBLIC=1 -DORCA_TOOLS=ON %SIG_FLAG% -DCMAKE_PREFIX_PATH="%DEPS%/usr/local" -DCMAKE_INSTALL_PREFIX="./Snapmaker_Orca" -DCMAKE_BUILD_TYPE=%build_type% -DWIN10SDK_PATH="%WindowsSdkDir%Include\%WindowsSDKVersion%\"
+cmake .. -G "Visual Studio 17 2022" -A x64 -DBBL_RELEASE_TO_PUBLIC=1 -DORCA_TOOLS=ON %SIG_FLAG% -DCMAKE_PREFIX_PATH="%DEPS%/usr/local" -DCMAKE_INSTALL_PREFIX="./Snapmaker_Orca" -DCMAKE_BUILD_TYPE=%build_type% -DWIN10SDK_PATH="%WindowsSdkDir%Include\%WindowsSDKVersion%\" %STRAWBERRY_CMAKE_ARGS%
 cmake --build . --config %build_type% --target ALL_BUILD -- -m
 @echo off
 cd ..
