@@ -1,6 +1,7 @@
 #include "libslic3r/Technologies.hpp"
 #include "libslic3r/FilamentHotBedNozzleRules.hpp"
 #include "GUI_App.hpp"
+#include "Plugin/PluginGUIIntegration.hpp"
 #include "GUI_Init.hpp"
 #include "GUI_ObjectList.hpp"
 #include "GUI_Factories.hpp"
@@ -2558,6 +2559,8 @@ bool GUI_App::on_init_inner()
     wxImage::SetDefaultLoadFlags(0); // ignore waring in release build
 #endif
     profiler.mark("wx init/log/image handlers");
+
+    sync_plugin_gui_contributions_from_manager();
 
 #if defined(_WIN32) && ! defined(_WIN64)
     // BBS: remove 32bit build prompt

@@ -48,6 +48,7 @@
 
 #include "Widgets/Label.hpp"
 #include "Widgets/TabCtrl.hpp"
+#include "Plugin/GUIContributionRegistry.hpp"
 #include "MarkdownTip.hpp"
 #include "Search.hpp"
 #include "BedShapeDialog.hpp"
@@ -2561,6 +2562,10 @@ void TabPrint::build()
         optgroup->append_single_option_line("wipe_tower_extra_flow", "multimaterial_settings_prime_tower#extra-flow-for-purge");
         optgroup->append_single_option_line("wipe_tower_max_purge_speed", "multimaterial_settings_prime_tower#maximum-wipe-tower-print-speed");
         optgroup->append_single_option_line("wipe_tower_wall_type", "multimaterial_settings_prime_tower#wall-type");
+        for (const GUIOptionContribution &plugin_line : GUIContributionRegistry::instance().option_lines()) {
+            if (plugin_line.optgroup_key == "multimaterial_settings_prime_tower")
+                optgroup->append_single_option_line(plugin_line.option_key, plugin_line.doc_path);
+        }
         optgroup->append_single_option_line("wipe_tower_cone_angle", "multimaterial_settings_prime_tower#stabilization-cone-apex-angle");
         optgroup->append_single_option_line("wipe_tower_extra_rib_length", "multimaterial_settings_prime_tower#extra-rib-length");
         optgroup->append_single_option_line("wipe_tower_rib_width", "multimaterial_settings_prime_tower#rib-width");

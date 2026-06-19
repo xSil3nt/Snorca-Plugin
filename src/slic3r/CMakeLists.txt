@@ -182,6 +182,10 @@ set(SLIC3R_GUI_SOURCES
     GUI/GLToolbar.hpp
     GUI/GUI_App.cpp
     GUI/GUI_App.hpp
+    GUI/Plugin/GUIContributionRegistry.cpp
+    GUI/Plugin/GUIContributionRegistry.hpp
+    GUI/Plugin/PluginGUIIntegration.cpp
+    GUI/Plugin/PluginGUIIntegration.hpp
     GUI/GUI_AuxiliaryList.cpp
     GUI/GUI_AuxiliaryList.hpp
     GUI/GUI_Colors.cpp

@@ -8,6 +8,7 @@
 #include "libslic3r/PresetBundle.hpp"
 #include "MsgDialog.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Plugin/PluginManager.hpp"
 
 #include <wx/msgdlg.h>
 
@@ -781,10 +782,16 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     toggle_line("dithering_local_z_direct_multicolor", local_z_dithering_enabled);
 
     WipeTowerWallType wipe_tower_wall_type = config->opt_enum<WipeTowerWallType>("wipe_tower_wall_type");
+    const ConfigOption *wall_type_opt = config->option("wipe_tower_wall_type");
+    const std::string wall_type_key = wall_type_opt ? wall_type_opt->serialize() : "rectangle";
     toggle_line("wipe_tower_cone_angle", have_prime_tower && !is_BBL_Printer && wipe_tower_wall_type == WipeTowerWallType::wtwCone);
     toggle_line("wipe_tower_extra_rib_length", have_prime_tower && !is_BBL_Printer && wipe_tower_wall_type == WipeTowerWallType::wtwRib);
     toggle_line("wipe_tower_rib_width", have_prime_tower && !is_BBL_Printer && wipe_tower_wall_type == WipeTowerWallType::wtwRib);
     toggle_line("wipe_tower_fillet_wall", have_prime_tower && !is_BBL_Printer && wipe_tower_wall_type == WipeTowerWallType::wtwRib);
+    if (wall_type_key == "round")
+        toggle_field("prime_tower_width", have_prime_tower);
+
+    GUIContributionRegistry::instance().apply_visibility_rules(this, config);
     
     toggle_field("prime_tower_width", have_prime_tower && wipe_tower_wall_type != WipeTowerWallType::wtwRib);
 
