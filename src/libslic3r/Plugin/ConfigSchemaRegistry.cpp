@@ -85,34 +85,6 @@ ConfigOptionDef plugin_def_to_host_def(const PluginConfigOptionDef &plugin_def)
 
 
 
-void ConfigSchemaRegistry::register_option(const PluginConfigRegistration &registration)
-
-{
-
-    std::lock_guard<std::mutex> lock(m_mutex);
-
-    m_registrations.push_back(registration);
-
-    m_applied = false;
-
-}
-
-
-
-void ConfigSchemaRegistry::extend_enum(const PluginEnumExtension &extension)
-
-{
-
-    std::lock_guard<std::mutex> lock(m_mutex);
-
-    m_enum_extensions.push_back(extension);
-
-    m_applied = false;
-
-}
-
-
-
 void ConfigSchemaRegistry::apply_to_print_config_def()
 
 {

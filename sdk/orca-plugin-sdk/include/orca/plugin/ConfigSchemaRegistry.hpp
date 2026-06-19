@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <map>
 #include <mutex>
@@ -49,8 +49,19 @@ struct PluginConfigRegistration
 class ConfigSchemaRegistry
 {
 public:
-    void register_option(const PluginConfigRegistration &registration);
-    void extend_enum(const PluginEnumExtension &extension);
+    void register_option(const PluginConfigRegistration &registration)
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_registrations.push_back(registration);
+        m_applied = false;
+    }
+
+    void extend_enum(const PluginEnumExtension &extension)
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_enum_extensions.push_back(extension);
+        m_applied = false;
+    }
 
     void apply_to_print_config_def();
     void register_preset_options();
