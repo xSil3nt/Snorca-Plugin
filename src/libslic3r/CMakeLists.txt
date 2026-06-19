@@ -352,6 +352,7 @@ set(lisbslic3r_sources
     Plugin/WallGeneratorRegistry.hpp
     Plugin/WipeTowerShapeRegistry.cpp
     Plugin/WipeTowerShapeRegistry.hpp
+    Plugin/WipeTowerPluginBridge.hpp
     Platform.cpp
     Platform.hpp
     PNGReadWrite.cpp
@@ -545,6 +546,7 @@ encoding_check(libslic3r)
 target_compile_definitions(libslic3r PUBLIC -DUSE_TBB -DTBB_USE_CAPTURED_EXCEPTION=0)
 # Make source directory PUBLIC so other modules (like libslic3r_gui) can include headers like SentryWrapper.hpp
 target_include_directories(libslic3r PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories(libslic3r PUBLIC ${CMAKE_SOURCE_DIR}/sdk/orca-plugin-sdk/include)
 target_include_directories(libslic3r SYSTEM PUBLIC ${EXPAT_INCLUDE_DIRS})
 
 # Find the OCCT and related libraries

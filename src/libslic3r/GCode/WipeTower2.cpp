@@ -1,5 +1,6 @@
 // Orca: WipeTower2 for all non bbl printers, support all MMU device and toolchanger.
 #include "WipeTower2.hpp"
+#include "libslic3r/Plugin/WipeTowerPluginBridge.hpp"
 #include "libslic3r/Plugin/WipeTowerShapeRegistry.hpp"
 
 #include <cassert>
@@ -2313,19 +2314,9 @@ WipeTower::ToolChangeResult WipeTower2::finish_layer()
     bool toolchanges_on_layer = m_layer_info->toolchanges_depth() > WT_EPSILON;
 
     const std::string wall_shape_key = wipe_tower_wall_type_key(m_wall_type);
-    WipeTower::box_coordinates wt_box_shape(Vec2f(0.f, 0.f), m_wipe_tower_width, m_layer_info->depth + m_perimeter_width);
-    WipeTowerWallContext shape_ctx;
-    shape_ctx.tower           = this;
-    shape_ctx.wt_box          = &wt_box_shape;
-    shape_ctx.perimeter_width = m_perimeter_width;
-    Vec2f  infill_center;
-    float  infill_radius = 0.f;
-    bool   circular_infill = false;
-    if (auto shape = wipe_tower_shape_registry().create(wall_shape_key))
-        circular_infill = shape->get_infill_circle(shape_ctx, infill_center, infill_radius);
 
     // inner perimeter of the sparse section, if there is space for it:
-    if (!circular_infill && fill_box.ru.y() - fill_box.rd.y() > m_perimeter_width - WT_EPSILON)
+    if (fill_box.ru.y() - fill_box.rd.y() > m_perimeter_width - WT_EPSILON)
         writer.rectangle(fill_box.ld, fill_box.rd.x() - fill_box.ld.x(), fill_box.ru.y() - fill_box.rd.y(), feedrate);
 
     // we are in one of the corners, travel to ld along the perimeter:
@@ -2356,10 +2347,6 @@ WipeTower::ToolChangeResult WipeTower2::finish_layer()
                 right += m_perimeter_width;
                 sparse_factor = 1.f;
             }
-            if (circular_infill) {
-                generate_circular_wipe_tower_infill(writer, infill_center, infill_radius, fill_box, feedrate, m_bridging,
-                                                    m_perimeter_width, true, first_layer);
-            } else {
             float y       = fill_box.ld.y() + m_perimeter_width;
             int   n       = dy / (m_perimeter_width * sparse_factor);
             float spacing = (dy - m_perimeter_width) / (n - 1);
@@ -2369,10 +2356,6 @@ WipeTower::ToolChangeResult WipeTower2::finish_layer()
                 y = y + spacing;
             }
             writer.extrude(writer.x(), fill_box.lu.y());
-            }
-        } else if (circular_infill) {
-            generate_circular_wipe_tower_infill(writer, infill_center, infill_radius, fill_box, feedrate, m_bridging,
-                                                m_perimeter_width, false, first_layer);
         } else {
             // Extrude an inverse U at the left of the region and the sparse infill.
             writer.extrude(fill_box.lu + Vec2f(m_perimeter_width * 2, 0.f), feedrate);
@@ -2396,24 +2379,24 @@ WipeTower::ToolChangeResult WipeTower2::finish_layer()
     Polygon poly;
     if (auto shape = wipe_tower_shape_registry().create(wall_shape_key)) {
         WipeTowerWallContext ctx;
-        ctx.tower           = this;
-        ctx.writer          = &writer;
-        ctx.feedrate        = feedrate;
-        ctx.first_layer     = first_layer;
-        ctx.spacing         = spacing;
-        ctx.perimeter_width = m_perimeter_width;
-        ctx.skip_points     = get_wall_skip_points(m_layer_info - m_plan.begin());
-        WipeTower::box_coordinates wt_box_cone(
+        ctx.tower               = this;
+        ctx.host_native_writer  = &writer;
+        ctx.feedrate            = feedrate;
+        ctx.first_layer         = first_layer;
+        ctx.spacing             = spacing;
+        ctx.perimeter_width     = m_perimeter_width;
+        ctx.skip_points         = get_wall_skip_points(m_layer_info - m_plan.begin());
+        WipeTowerBoxCoordinates wt_box_cone_sdk(
             Vec2f(0.f, (m_current_shape == SHAPE_REVERSED ? m_layer_info->toolchanges_depth() : 0.f)),
             m_wipe_tower_width, m_layer_info->depth + m_perimeter_width);
-        WipeTower::box_coordinates wt_box_default(Vec2f(0.f, 0.f), m_wipe_tower_width, m_layer_info->depth + m_perimeter_width);
+        WipeTowerBoxCoordinates wt_box_default_sdk(Vec2f(0.f, 0.f), m_wipe_tower_width, m_layer_info->depth + m_perimeter_width);
         if (wall_shape_key == "cone") {
-            ctx.wt_box      = &wt_box_cone;
+            ctx.wt_box      = &wt_box_cone_sdk;
             ctx.infill_cone = first_layer && m_wipe_tower_width > 2 * spacing && m_wipe_tower_depth > 2 * spacing;
         } else {
-            ctx.wt_box = &wt_box_default;
+            ctx.wt_box = &wt_box_default_sdk;
         }
-        poly = shape->generate_wall(ctx);
+        poly = to_host_polygon(shape->generate_wall(ctx));
         if (!shape->includes_extruded_perimeter())
             poly = extrude_perimeter_polygon(writer, poly, feedrate, ctx.skip_points, true);
     } else if (m_wall_type == (int) wtwCone) {

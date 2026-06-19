@@ -1,59 +1,28 @@
-#ifndef slic3r_SlicingHookBus_hpp_
-#define slic3r_SlicingHookBus_hpp_
+#pragma once
+#include <orca/plugin/SlicingHookBus.hpp>
 
-#include "libslic3r/Config.hpp"
-
-#include <functional>
-#include <mutex>
-#include <string>
-#include <vector>
+#include "libslic3r/Print.hpp"
 
 namespace Slic3r {
 
-class Print;
-class PrintObject;
-enum PrintStep : int;
-enum PrintObjectStep : int;
-
-enum class SlicingHookPhase {
-    BeforePrintStep,
-    AfterPrintStep,
-    BeforePrintObjectStep,
-    AfterPrintObjectStep,
-    AfterGCodeExport,
-};
-
-struct SlicingHookContext
+inline SlicingHookContext make_slicing_hook_context(Print *print, PrintObject *print_object, PrintStep print_step)
 {
-    Print                              *print{nullptr};
-    PrintObject                        *print_object{nullptr};
-    PrintStep                           print_step;
-    PrintObjectStep                     object_step;
-    std::string                         gcode_path;
-    const ConfigBase                   *config{nullptr};
-};
+    SlicingHookContext ctx;
+    ctx.print       = print;
+    ctx.print_object = print_object;
+    ctx.print_step  = int(print_step);
+    ctx.config      = print ? static_cast<const ConfigBase *>(&print->config()) : nullptr;
+    return ctx;
+}
 
-using SlicingHookFn = std::function<void(const SlicingHookContext &ctx)>;
-
-class SlicingHookBus
+inline SlicingHookContext make_slicing_hook_context(PrintObject *print_object, PrintObjectStep object_step)
 {
-public:
-    void register_hook(SlicingHookPhase phase, SlicingHookFn fn, const std::string &plugin_id = {});
-
-    void fire(SlicingHookPhase phase, const SlicingHookContext &ctx) const;
-
-private:
-    struct HookEntry
-    {
-        SlicingHookPhase phase;
-        SlicingHookFn    fn;
-        std::string      plugin_id;
-    };
-
-    mutable std::mutex     m_mutex;
-    std::vector<HookEntry> m_hooks;
-};
+    SlicingHookContext ctx;
+    ctx.print        = print_object ? print_object->print() : nullptr;
+    ctx.print_object = print_object;
+    ctx.object_step  = int(object_step);
+    ctx.config       = ctx.print ? static_cast<const ConfigBase *>(&ctx.print->config()) : nullptr;
+    return ctx;
+}
 
 } // namespace Slic3r
-
-#endif // slic3r_SlicingHookBus_hpp_

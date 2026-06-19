@@ -1,6 +1,7 @@
 #include "WipeTowerShapeRegistry.hpp"
 
 #include "PluginManager.hpp"
+#include "WipeTowerPluginBridge.hpp"
 #include "libslic3r/GCode/WipeTower2.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
@@ -14,9 +15,15 @@ class BuiltinRectangleShape : public IWipeTowerShape
 {
 public:
     std::string key() const override { return "rectangle"; }
-    Polygon generate_wall(const WipeTowerWallContext &ctx) override
+    PluginGeo::    Polygon generate_wall(const WipeTowerWallContext &ctx) override
     {
-        return ctx.tower->generate_support_rib_wall(*ctx.writer, *ctx.wt_box, ctx.feedrate, ctx.first_layer, false, true, ctx.skip_points);
+        auto *writer = static_cast<WipeTowerWriter2 *>(ctx.host_native_writer);
+        std::vector<Vec2f> skip_host;
+        skip_host.reserve(ctx.skip_points.size());
+        for (const PluginGeo::Vec2f &pt : ctx.skip_points)
+            skip_host.emplace_back(pt.x(), pt.y());
+        return to_sdk_polygon(ctx.tower->generate_support_rib_wall(*writer, to_host_box(*ctx.wt_box), ctx.feedrate, ctx.first_layer,
+                                                                   false, true, skip_host));
     }
 };
 
@@ -24,9 +31,15 @@ class BuiltinConeShape : public IWipeTowerShape
 {
 public:
     std::string key() const override { return "cone"; }
-    Polygon generate_wall(const WipeTowerWallContext &ctx) override
+    PluginGeo::    Polygon generate_wall(const WipeTowerWallContext &ctx) override
     {
-        return ctx.tower->generate_support_cone_wall(*ctx.writer, *ctx.wt_box, ctx.feedrate, ctx.infill_cone, ctx.spacing, ctx.skip_points);
+        auto *writer = static_cast<WipeTowerWriter2 *>(ctx.host_native_writer);
+        std::vector<Vec2f> skip_host;
+        skip_host.reserve(ctx.skip_points.size());
+        for (const PluginGeo::Vec2f &pt : ctx.skip_points)
+            skip_host.emplace_back(pt.x(), pt.y());
+        return to_sdk_polygon(ctx.tower->generate_support_cone_wall(*writer, to_host_box(*ctx.wt_box), ctx.feedrate, ctx.infill_cone,
+                                                                    ctx.spacing, skip_host));
     }
 };
 
@@ -36,9 +49,15 @@ public:
     std::string key() const override { return "rib"; }
     bool needs_plan_tower_prep() const override { return true; }
     void plan_tower_prep(WipeTower2 &tower) override { tower.plan_tower_for_rib_shape(); }
-    Polygon generate_wall(const WipeTowerWallContext &ctx) override
+    PluginGeo::    Polygon generate_wall(const WipeTowerWallContext &ctx) override
     {
-        return ctx.tower->generate_support_rib_wall(*ctx.writer, *ctx.wt_box, ctx.feedrate, ctx.first_layer, true, true, ctx.skip_points);
+        auto *writer = static_cast<WipeTowerWriter2 *>(ctx.host_native_writer);
+        std::vector<Vec2f> skip_host;
+        skip_host.reserve(ctx.skip_points.size());
+        for (const PluginGeo::Vec2f &pt : ctx.skip_points)
+            skip_host.emplace_back(pt.x(), pt.y());
+        return to_sdk_polygon(ctx.tower->generate_support_rib_wall(*writer, to_host_box(*ctx.wt_box), ctx.feedrate, ctx.first_layer, true,
+                                                                   true, skip_host));
     }
 };
 

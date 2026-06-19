@@ -76,7 +76,7 @@ std::string PluginManager::platform_library_name(const std::string &base_name) c
 
 bool PluginManager::check_version_gate(const PluginManifest &manifest, std::string &error) const
 {
-    if (manifest.abi_version != 0 && manifest.abi_version != ORCA_PLUGIN_ABI_VERSION) {
+    if (manifest.abi_version != ORCA_PLUGIN_ABI_VERSION) {
         error = "plugin ABI version mismatch for " + manifest.id;
         return false;
     }
@@ -119,6 +119,10 @@ bool PluginManager::register_loaded_plugin(LoadedPlugin &plugin, std::string &er
         error = "orca_plugin_main returned null for plugin " + plugin.manifest.id;
         return false;
     }
+    if (descriptor->id == nullptr || plugin.manifest.id != descriptor->id) {
+        error = "plugin id mismatch for " + plugin.manifest.id;
+        return false;
+    }
     if (descriptor->abi_version != ORCA_PLUGIN_ABI_VERSION) {
         error = "plugin ABI handshake failed for " + plugin.manifest.id;
         return false;
@@ -139,6 +143,24 @@ bool PluginManager::register_loaded_plugin(LoadedPlugin &plugin, std::string &er
 
     plugin.registered = true;
     BOOST_LOG_TRIVIAL(info) << "Registered Orca plugin: " << descriptor->name << " (" << descriptor->version << ")";
+    if (!plugin.manifest.extension_points.empty()) {
+        std::string ext_points;
+        for (size_t i = 0; i < plugin.manifest.extension_points.size(); ++i) {
+            if (i > 0)
+                ext_points += ", ";
+            ext_points += plugin.manifest.extension_points[i];
+        }
+        BOOST_LOG_TRIVIAL(info) << "Plugin " << plugin.manifest.id << " extension points: " << ext_points;
+    }
+    if (!plugin.manifest.config_keys.empty()) {
+        std::string config_keys;
+        for (size_t i = 0; i < plugin.manifest.config_keys.size(); ++i) {
+            if (i > 0)
+                config_keys += ", ";
+            config_keys += plugin.manifest.config_keys[i];
+        }
+        BOOST_LOG_TRIVIAL(info) << "Plugin " << plugin.manifest.id << " config keys: " << config_keys;
+    }
     return true;
 }
 

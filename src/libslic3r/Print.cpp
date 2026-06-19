@@ -833,7 +833,14 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         }
     }
 
-    PluginManager::instance().config_schema().merge_invalidation(opt_keys, steps, osteps);
+    std::vector<int> plugin_print_steps;
+    std::vector<int> plugin_object_steps;
+    PluginManager::instance().config_schema().merge_invalidation(
+        std::vector<std::string>(opt_keys.begin(), opt_keys.end()), plugin_print_steps, plugin_object_steps);
+    for (int step : plugin_print_steps)
+        steps.emplace_back(PrintStep(step));
+    for (int step : plugin_object_steps)
+        osteps.emplace_back(PrintObjectStep(step));
 
     sort_remove_duplicates(steps);
     for (PrintStep step : steps)
@@ -2457,10 +2464,7 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": total object counts %1% in current print, need to slice %2%")%m_objects.size()%need_slicing_objects.size();
     {
-        SlicingHookContext hook_ctx;
-        hook_ctx.print   = this;
-        hook_ctx.config  = &m_config;
-        hook_ctx.print_step = psCount;
+        SlicingHookContext hook_ctx = make_slicing_hook_context(this, nullptr, psCount);
         PluginManager::instance().slicing_hooks().fire(SlicingHookPhase::BeforePrintStep, hook_ctx);
     }
     BOOST_LOG_TRIVIAL(info) << "Starting the slicing process." << log_memory_info();

@@ -3,7 +3,11 @@
     "name": "Orca No-op Plugin",
     "version": "1.0.0",
     "author": "Snapmaker Orca",
-    "abi_version": 1,
+    "abi_version": 2,
+    "min_app_version": "0.0.0",
     "entry_library": "orca_noop",
-    "extension_points": []
+    "extension_points": [],
+    "config_keys": [],
+    "preset_types": [],
+    "invalidation_keys": []
 }

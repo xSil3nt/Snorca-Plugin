@@ -879,8 +879,8 @@ endfunction()
 # libslic3r, Snapmaker_Orca GUI and the Snapmaker_Orca executable.
 add_subdirectory(deps_src)
 add_subdirectory(src)
-add_subdirectory(plugins)
 add_subdirectory(sdk/orca-plugin-sdk)
+add_subdirectory(plugins)
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Snapmaker_Orca_app_gui)
 
 add_dependencies(gettext_make_pot hintsToPot)
