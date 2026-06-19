@@ -437,6 +437,7 @@ protected:
 
     ConfigManipulation m_config_manipulation;
     ConfigManipulation get_config_manipulation();
+    void               apply_plugin_gui_contributions();
     friend class EditGCodeDialog;
 };
 

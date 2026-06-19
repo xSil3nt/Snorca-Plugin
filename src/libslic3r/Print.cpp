@@ -18,6 +18,7 @@
 #include "Utils.hpp"
 #include "PrintConfig.hpp"
 #include "Plugin/PluginManager.hpp"
+#include "Plugin/PluginSliceDataAccess.hpp"
 #include "Plugin/SlicingHookBus.hpp"
 #include "FilamentHotBedNozzleRules.hpp"
 #include "Model.hpp"
@@ -2473,13 +2474,11 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         for (PrintObject *obj : m_objects) {
             if (need_slicing_objects.count(obj) != 0) {
                 {
-                    SlicingHookContext hook_ctx = make_slicing_hook_context(obj, posSlice);
-                    PluginManager::instance().slicing_hooks().fire(SlicingHookPhase::BeforePrintObjectStep, hook_ctx);
+                    fire_print_object_slicing_hook(obj, posSlice, SlicingHookPhase::BeforePrintObjectStep);
                 }
                 obj->make_perimeters();
                 {
-                    SlicingHookContext hook_ctx = make_slicing_hook_context(obj, posPerimeters);
-                    PluginManager::instance().slicing_hooks().fire(SlicingHookPhase::AfterPrintObjectStep, hook_ctx);
+                    fire_print_object_slicing_hook(obj, posPerimeters, SlicingHookPhase::AfterPrintObjectStep);
                 }
             }
             else {

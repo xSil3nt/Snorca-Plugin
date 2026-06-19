@@ -1,6 +1,7 @@
 #include "Exception.hpp"
 #include "Print.hpp"
 #include "Plugin/PluginManager.hpp"
+#include "Plugin/PluginSliceDataAccess.hpp"
 #include "Plugin/SlicingHookBus.hpp"
 #include "BoundingBox.hpp"
 #include "ClipperUtils.hpp"
@@ -300,8 +301,7 @@ void PrintObject::make_perimeters()
     if (! this->set_started(posPerimeters))
         return;
 
-    PluginManager::instance().slicing_hooks().fire(
-        SlicingHookPhase::BeforePrintObjectStep, make_slicing_hook_context(this, posPerimeters));
+    fire_print_object_slicing_hook(this, posPerimeters, SlicingHookPhase::BeforePrintObjectStep);
 
     m_print->set_status(15, L("Generating walls"));
     BOOST_LOG_TRIVIAL(info) << "Generating walls..." << log_memory_info();
@@ -400,8 +400,7 @@ void PrintObject::make_perimeters()
     BOOST_LOG_TRIVIAL(debug) << "Generating perimeters in parallel - end";
 
     this->set_done(posPerimeters);
-    PluginManager::instance().slicing_hooks().fire(
-        SlicingHookPhase::AfterPrintObjectStep, make_slicing_hook_context(this, posPerimeters));
+    fire_print_object_slicing_hook(this, posPerimeters, SlicingHookPhase::AfterPrintObjectStep);
 }
 
 void PrintObject::prepare_infill()
@@ -549,8 +548,7 @@ void PrintObject::infill()
     this->prepare_infill();
 
     if (this->set_started(posInfill)) {
-        PluginManager::instance().slicing_hooks().fire(
-            SlicingHookPhase::BeforePrintObjectStep, make_slicing_hook_context(this, posInfill));
+        fire_print_object_slicing_hook(this, posInfill, SlicingHookPhase::BeforePrintObjectStep);
         m_print->set_status(35, L("Generating infill toolpath"));
         const auto& adaptive_fill_octree = this->m_adaptive_fill_octrees.first;
         const auto& support_fill_octree = this->m_adaptive_fill_octrees.second;
@@ -571,8 +569,7 @@ void PrintObject::infill()
         ### $_->fill_surfaces->clear for map @{$_->regions}, @{$object->layers};
         */
         this->set_done(posInfill);
-        PluginManager::instance().slicing_hooks().fire(
-            SlicingHookPhase::AfterPrintObjectStep, make_slicing_hook_context(this, posInfill));
+        fire_print_object_slicing_hook(this, posInfill, SlicingHookPhase::AfterPrintObjectStep);
     }
 }
 

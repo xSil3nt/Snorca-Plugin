@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.13)
-project(OrcaPluginSDK VERSION 2.0.0)
+project(OrcaPluginSDK VERSION 3.0.0)
 
 add_library(OrcaPluginSDK INTERFACE)
 target_include_directories(OrcaPluginSDK INTERFACE

@@ -329,11 +329,17 @@ set(lisbslic3r_sources
     Plugin/AlgorithmProviderRegistry.hpp
     Plugin/ConfigSchemaRegistry.cpp
     Plugin/ConfigSchemaRegistry.hpp
+    Plugin/GCodePluginHost.hpp
+    Plugin/GCodeTransformRegistry.cpp
+    Plugin/GCodeTransformRegistry.hpp
     Plugin/InfillProviderRegistry.hpp
     Plugin/InfillProviderRegistryImpl.cpp
     Plugin/InfillProviderRegistryImpl.hpp
     Plugin/IWallGenerator.hpp
     Plugin/IWipeTowerShape.hpp
+    Plugin/PipelineStageHost.hpp
+    Plugin/PipelineStageRegistry.cpp
+    Plugin/PipelineStageRegistry.hpp
     Plugin/PluginABI.hpp
     Plugin/PluginContext.hpp
     Plugin/PluginGUISupport.cpp
@@ -344,6 +350,8 @@ set(lisbslic3r_sources
     Plugin/PluginManager.hpp
     Plugin/PluginManifest.cpp
     Plugin/PluginManifest.hpp
+    Plugin/PluginSliceDataAccess.cpp
+    Plugin/PluginSliceDataAccess.hpp
     Plugin/SharedLibrary.cpp
     Plugin/SharedLibrary.hpp
     Plugin/SlicingHookBus.cpp

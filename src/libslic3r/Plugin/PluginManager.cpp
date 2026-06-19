@@ -2,6 +2,7 @@
 
 #include "PluginABI.hpp"
 #include "PluginContext.hpp"
+#include "PipelineStageHost.hpp"
 #include "WallGeneratorRegistry.hpp"
 #include "InfillProviderRegistryImpl.hpp"
 #include "WipeTowerShapeRegistry.hpp"
@@ -33,6 +34,7 @@ void PluginManager::initialize()
     register_builtin_wipe_tower_shapes();
     register_wall_generator_defaults();
     register_infill_provider_defaults();
+    register_pipeline_stage_sync();
     m_initialized = true;
 }
 
@@ -136,6 +138,8 @@ bool PluginManager::register_loaded_plugin(LoadedPlugin &plugin, std::string &er
                       m_wipe_tower_shapes,
                       m_wall_generators,
                       m_infill_providers,
+                      m_pipeline_stages,
+                      m_gcode_transforms,
                       m_slicing_hooks,
                       m_gui_support);
     ctx.set_plugin_id(plugin.manifest.id);

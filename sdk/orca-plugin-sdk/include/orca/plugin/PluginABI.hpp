@@ -7,7 +7,7 @@ namespace Slic3r {
 class PluginContext;
 
 // Bump when the plugin registration API or host contract changes.
-static constexpr int ORCA_PLUGIN_ABI_VERSION = 2;
+static constexpr int ORCA_PLUGIN_ABI_VERSION = 3;
 
 #if defined(_WIN32)
 #  ifdef ORCA_PLUGIN_EXPORTS

@@ -17,6 +17,7 @@
 #include "ShortestPath.hpp"
 #include "MixedFilament.hpp"
 #include "Print.hpp"
+#include "Plugin/GCodePluginHost.hpp"
 #include "Utils.hpp"
 #include "ClipperUtils.hpp"
 #include "libslic3r.h"
@@ -3150,6 +3151,9 @@ void GCode::process_layers(const Print&                                         
                                                     &print_object_instances_ordering, size_t(-1));
             }
         });
+    const auto plugin_gcode_transform = tbb::make_filter<LayerResult, LayerResult>(
+        slic3r_tbb_filtermode::serial_in_order,
+        [&print](LayerResult in) -> LayerResult { return apply_plugin_layer_gcode_transforms(print, std::move(in)); });
     if (m_spiral_vase) {
         float nozzle_diameter  = EXTRUDER_CONFIG(nozzle_diameter);
         float max_xy_smoothing = m_config.get_abs_value("spiral_mode_max_xy_smoothing", nozzle_diameter);
@@ -3206,13 +3210,13 @@ void GCode::process_layers(const Print&                                         
 
     // The pipeline elements are joined using const references, thus no copying is performed.
     if (m_spiral_vase && m_pressure_equalizer)
-        tbb::parallel_pipeline(12, generator & spiral_mode & pressure_equalizer & cooling & fan_mover & output);
+        tbb::parallel_pipeline(12, generator & plugin_gcode_transform & spiral_mode & pressure_equalizer & cooling & fan_mover & output);
     else if (m_spiral_vase)
-        tbb::parallel_pipeline(12, generator & spiral_mode & cooling & fan_mover & output);
+        tbb::parallel_pipeline(12, generator & plugin_gcode_transform & spiral_mode & cooling & fan_mover & output);
     else if (m_pressure_equalizer)
-        tbb::parallel_pipeline(12, generator & pressure_equalizer & cooling & fan_mover & pa_processor_filter & output);
+        tbb::parallel_pipeline(12, generator & plugin_gcode_transform & pressure_equalizer & cooling & fan_mover & pa_processor_filter & output);
     else
-        tbb::parallel_pipeline(12, generator & cooling & fan_mover & pa_processor_filter & output);
+        tbb::parallel_pipeline(12, generator & plugin_gcode_transform & cooling & fan_mover & pa_processor_filter & output);
 }
 
 // Process all layers of a single object instance (sequential mode) with a parallel pipeline:
@@ -3255,6 +3259,9 @@ void GCode::process_layers(const Print&              print,
                                                                                single_object_idx, prime_extruder);
                                                 }
                                             });
+    const auto plugin_gcode_transform = tbb::make_filter<LayerResult, LayerResult>(
+        slic3r_tbb_filtermode::serial_in_order,
+        [&print](LayerResult in) -> LayerResult { return apply_plugin_layer_gcode_transforms(print, std::move(in)); });
     if (m_spiral_vase) {
         float nozzle_diameter  = EXTRUDER_CONFIG(nozzle_diameter);
         float max_xy_smoothing = m_config.get_abs_value("spiral_mode_max_xy_smoothing", nozzle_diameter);
@@ -3308,13 +3315,13 @@ void GCode::process_layers(const Print&              print,
 
     // The pipeline elements are joined using const references, thus no copying is performed.
     if (m_spiral_vase && m_pressure_equalizer)
-        tbb::parallel_pipeline(12, generator & spiral_mode & pressure_equalizer & cooling & fan_mover & output);
+        tbb::parallel_pipeline(12, generator & plugin_gcode_transform & spiral_mode & pressure_equalizer & cooling & fan_mover & output);
     else if (m_spiral_vase)
-        tbb::parallel_pipeline(12, generator & spiral_mode & cooling & fan_mover & output);
+        tbb::parallel_pipeline(12, generator & plugin_gcode_transform & spiral_mode & cooling & fan_mover & output);
     else if (m_pressure_equalizer)
-        tbb::parallel_pipeline(12, generator & pressure_equalizer & cooling & fan_mover & pa_processor_filter & output);
+        tbb::parallel_pipeline(12, generator & plugin_gcode_transform & pressure_equalizer & cooling & fan_mover & pa_processor_filter & output);
     else
-        tbb::parallel_pipeline(12, generator & cooling & fan_mover & pa_processor_filter & output);
+        tbb::parallel_pipeline(12, generator & plugin_gcode_transform & cooling & fan_mover & pa_processor_filter & output);
 }
 
 std::string GCode::placeholder_parser_process(const std::string&   name,

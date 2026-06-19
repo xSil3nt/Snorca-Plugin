@@ -10,6 +10,7 @@ namespace Slic3r {
 class Print;
 class PrintObject;
 class ConfigBase;
+class ISliceData;
 
 enum class SlicingHookPhase {
     BeforePrintStep,
@@ -27,6 +28,7 @@ struct SlicingHookContext
     int               object_step{0};
     std::string       gcode_path;
     const ConfigBase *config{nullptr};
+    ISliceData       *slice_data{nullptr};
 };
 
 using SlicingHookFn = std::function<void(const SlicingHookContext &ctx)>;

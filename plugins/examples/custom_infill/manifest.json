@@ -1,0 +1,13 @@
+{
+    "id": "orca.custom_infill",
+    "name": "Custom Crosshatch Infill",
+    "version": "1.0.0",
+    "author": "Snapmaker Orca",
+    "abi_version": 3,
+    "min_app_version": "0.0.0",
+    "entry_library": "orca_custom_infill",
+    "extension_points": ["pipeline_stage", "config_schema"],
+    "config_keys": ["sparse_infill_pattern"],
+    "preset_types": ["print"],
+    "invalidation_keys": ["sparse_infill_pattern"]
+}

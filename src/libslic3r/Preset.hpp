@@ -348,8 +348,10 @@ public:
     static const std::vector<std::string>&  print_options();
     static void register_print_option(const std::string &opt_key);
     static const std::vector<std::string>&  filament_options();
+    static void register_filament_option(const std::string &opt_key);
     // Printer options contain the nozzle options.
     static const std::vector<std::string>&  printer_options();
+    static void register_printer_option(const std::string &opt_key);
     // Nozzle options of the printer options.
     static const std::vector<std::string>&  nozzle_options();
     // Printer machine limits, those are contained in printer_options().

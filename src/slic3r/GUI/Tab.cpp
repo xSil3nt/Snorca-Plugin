@@ -24,7 +24,8 @@
 #include <wx/settings.h>
 #include <wx/filedlg.h>
 #include <iomanip>
-#include <sstream>
+#include <map>
+#include <set>
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/join.hpp>
@@ -2562,14 +2563,6 @@ void TabPrint::build()
         optgroup->append_single_option_line("wipe_tower_extra_flow", "multimaterial_settings_prime_tower#extra-flow-for-purge");
         optgroup->append_single_option_line("wipe_tower_max_purge_speed", "multimaterial_settings_prime_tower#maximum-wipe-tower-print-speed");
         optgroup->append_single_option_line("wipe_tower_wall_type", "multimaterial_settings_prime_tower#wall-type");
-        for (const GUIOptionContribution &plugin_line : GUIContributionRegistry::instance().option_lines()) {
-            if (plugin_line.optgroup_key != "multimaterial_settings_prime_tower")
-                continue;
-            // Built-in tabs already declare core options; plugins extend enums or add new keys only.
-            if (plugin_line.option_key == "wipe_tower_wall_type")
-                continue;
-            optgroup->append_single_option_line(plugin_line.option_key, plugin_line.doc_path);
-        }
         optgroup->append_single_option_line("wipe_tower_cone_angle", "multimaterial_settings_prime_tower#stabilization-cone-apex-angle");
         optgroup->append_single_option_line("wipe_tower_extra_rib_length", "multimaterial_settings_prime_tower#extra-rib-length");
         optgroup->append_single_option_line("wipe_tower_rib_width", "multimaterial_settings_prime_tower#rib-width");
@@ -2692,6 +2685,7 @@ optgroup->append_single_option_line("skirt_loops", "others_settings_skirt#loops"
     //     optgroup->append_single_option_line(option);
 
     //     build_preset_description_line(optgroup.get());
+    apply_plugin_gui_contributions();
 }
 
 // Reload current config (aka presets->edited_preset->config) into the UI fields.
@@ -3987,6 +3981,7 @@ void TabFilament::build()
         optgroup->append_single_option_line(option);
 
         //build_preset_description_line(optgroup.get());
+    apply_plugin_gui_contributions();
 }
 
 // Reload current config (aka presets->edited_preset->config) into the UI fields.
@@ -4454,6 +4449,7 @@ void TabPrinter::build_fff()
     //    build_preset_description_line(optgroup.get());
 #endif
     build_unregular_pages(true);
+    apply_plugin_gui_contributions();
 }
 
 void TabPrinter::build_sla()
@@ -6899,6 +6895,63 @@ ConfigOptionsGroupShp Page::new_optgroup(const wxString &title, const wxString &
     m_optgroups.push_back(optgroup);
 
     return optgroup;
+}
+
+void Tab::apply_plugin_gui_contributions()
+{
+    if (m_config == nullptr || m_config->def() == nullptr)
+        return;
+
+    auto optgroup_key_from_doc_path = [](const std::string &doc_path) {
+        const auto pos = doc_path.find('#');
+        return pos == std::string::npos ? doc_path : doc_path.substr(0, pos);
+    };
+
+    std::map<std::string, ConfigOptionsGroupShp> groups;
+    std::set<std::string>                        existing_options;
+
+    for (const PageShp &page : m_pages) {
+        for (const ConfigOptionsGroupShp &og : page->m_optgroups) {
+            for (const Line &line : og->get_lines()) {
+                if (line.label_path.empty())
+                    continue;
+                const std::string key = optgroup_key_from_doc_path(line.label_path);
+                if (groups.find(key) == groups.end())
+                    groups[key] = og;
+                if (!line.is_separator()) {
+                    const auto &options = line.get_options();
+                    if (!options.empty() && !options.front().opt_id.empty())
+                        existing_options.insert(options.front().opt_id);
+                }
+            }
+        }
+    }
+
+    PageShp               plugin_page;
+    ConfigOptionsGroupShp fallback_og;
+
+    for (const GUIOptionContribution &plugin_line : GUIContributionRegistry::instance().option_lines()) {
+        if (existing_options.count(plugin_line.option_key))
+            continue;
+        if (!m_config->def()->has(plugin_line.option_key))
+            continue;
+
+        ConfigOptionsGroupShp target;
+        auto                  it = groups.find(plugin_line.optgroup_key);
+        if (it != groups.end()) {
+            target = it->second;
+        } else {
+            if (!fallback_og) {
+                plugin_page = add_options_page(L("Plugin settings"), "custom-gcode_other");
+                fallback_og = plugin_page->new_optgroup(L("Plugin options"), L"param_plugin_settings");
+            }
+            target = fallback_og;
+        }
+
+        const std::string doc_path = plugin_line.doc_path.empty() ? plugin_line.optgroup_key : plugin_line.doc_path;
+        target->append_single_option_line(plugin_line.option_key, doc_path);
+        existing_options.insert(plugin_line.option_key);
+    }
 }
 
 const ConfigOptionsGroupShp Page::get_optgroup(const wxString& title) const

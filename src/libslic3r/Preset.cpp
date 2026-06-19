@@ -1100,6 +1100,19 @@ void Preset::register_print_option(const std::string &opt_key)
     if (std::find(s_Preset_print_options.begin(), s_Preset_print_options.end(), opt_key) == s_Preset_print_options.end())
         s_Preset_print_options.push_back(opt_key);
 }
+
+void Preset::register_filament_option(const std::string &opt_key)
+{
+    if (std::find(s_Preset_filament_options.begin(), s_Preset_filament_options.end(), opt_key) == s_Preset_filament_options.end())
+        s_Preset_filament_options.push_back(opt_key);
+}
+
+void Preset::register_printer_option(const std::string &opt_key)
+{
+    if (std::find(s_Preset_printer_options.begin(), s_Preset_printer_options.end(), opt_key) == s_Preset_printer_options.end())
+        s_Preset_printer_options.push_back(opt_key);
+}
+
 const std::vector<std::string>& Preset::filament_options()       { return s_Preset_filament_options; }
 const std::vector<std::string>& Preset::machine_limits_options() { return s_Preset_machine_limits_options; }
 // The following nozzle options of a printer profile will be adjusted to match the size
