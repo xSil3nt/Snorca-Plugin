@@ -1,10 +1,10 @@
 #pragma once
 
+#include "../IWipeTowerPathWriter.hpp"
 #include "../geometry/Vec.hpp"
 
 #include <cmath>
 #include <functional>
-#include <vector>
 
 namespace Slic3r {
 namespace PluginGeo {
@@ -22,75 +22,81 @@ inline bool circle_chord_at_y(float y, float cx, float cy, float radius, float x
     return x_high - x_low > min_len;
 }
 
-inline bool circle_chord_at_x(float x, float cx, float cy, float radius, float y_min, float y_max, float min_len,
-                              float &y_low, float &y_high)
-{
-    const float dx = x - cx;
-    if (dx * dx > radius * radius)
-        return false;
-    const float half = std::sqrt(std::max(0.f, radius * radius - dx * dx));
-    y_low            = std::max(y_min, cy - half);
-    y_high           = std::min(y_max, cy + half);
-    return y_high - y_low > min_len;
-}
-
-inline float inner_radius_from_box(const Vec2f &box_ld, const Vec2f &box_ru, float perimeter_width)
+inline float inner_radius_from_box(const Vec2f &box_ld, const Vec2f &box_ru, float inset)
 {
     const float width  = box_ru.x() - box_ld.x();
     const float height = box_ru.y() - box_ld.y();
-    return 0.5f * std::min(width, height) - perimeter_width;
+    return std::max(0.f, 0.5f * std::min(width, height) - inset);
 }
 
-inline void emit_concentric_rings(const Vec2f &center, float outer_radius, float inner_radius, float ring_step,
-                                   const Vec2f &box_ld, const Vec2f &box_ru, float min_chord_len,
-                                   const std::function<void(float x1, float y, float x2)> &emit_chord)
+inline float circle_circumference(float radius)
 {
-    for (float r = outer_radius; r >= inner_radius; r -= ring_step) {
-        const float y_min = box_ld.y();
-        const float y_max = box_ru.y();
-        const float dy    = y_max - y_min;
-        const int   lines = std::max(1, int(dy / ring_step));
-        const float step  = lines > 1 ? dy / (lines - 1) : 0.f;
-        float       y     = y_min;
-        for (int i = 0; i < lines; ++i) {
-            float x_low = 0.f;
-            float x_high = 0.f;
-            if (circle_chord_at_y(y, center.x(), center.y(), r, box_ld.x(), box_ru.x(), min_chord_len, x_low, x_high))
-                emit_chord(x_low, y, x_high);
-            if (lines > 1)
-                y += step;
-        }
+    return float(2.0 * M_PI) * radius;
+}
+
+// Closed circular perimeter (true concentric ring), not horizontal chord fill.
+inline void emit_circle_loop(IWipeTowerPathWriter &writer, const Vec2f &center, float radius, float feedrate,
+                             int segments = 48)
+{
+    if (radius <= 0.f || segments < 3)
+        return;
+
+    for (int i = 0; i <= segments; ++i) {
+        const float angle = float(2.0 * M_PI * i / segments);
+        const float x     = center.x() + radius * std::cos(angle);
+        const float y     = center.y() + radius * std::sin(angle);
+        if (i == 0)
+            writer.travel(x, y, feedrate);
+        else
+            writer.extrude(x, y, feedrate);
     }
 }
 
-inline void emit_archimedean_spiral(const Vec2f &center, float inner_radius, float outer_radius, float pitch,
-                                    float y_start, float y_end, float min_chord_len,
-                                    const std::function<void(float x, float y, float feedrate)> &emit_point,
-                                    float feedrate)
+inline void emit_concentric_ring_loops(IWipeTowerPathWriter &writer, const Vec2f &center, float outer_radius,
+                                       float inner_radius, float ring_step, float feedrate, bool sparse)
 {
-    if (pitch <= 0.f || y_end <= y_start)
+    if (ring_step <= 0.f)
         return;
 
-    const float two_pi = float(2.0 * M_PI);
-    float       theta  = 0.f;
-    float       r      = inner_radius;
-    float       y      = y_start;
-    bool        first  = true;
+    int ring_index = 0;
+    for (float r = outer_radius; r >= inner_radius - 1e-4f; r -= ring_step, ++ring_index) {
+        if (sparse && (ring_index % 2) != 0)
+            continue;
+        emit_circle_loop(writer, center, r, feedrate);
+    }
+}
 
-    while (y <= y_end && r <= outer_radius) {
-        const float x = center.x() + r * std::cos(theta);
-        const float py = center.y() + r * std::sin(theta);
-        if (py >= y_start - min_chord_len && py <= y_end + min_chord_len) {
-            if (first) {
-                emit_point(x, py, feedrate);
-                first = false;
-            } else {
-                emit_point(x, py, feedrate);
-            }
-        }
-        theta += 0.25f;
-        r = inner_radius + pitch * theta / two_pi;
-        y = py;
+// Archimedean spiral clipped to a maximum radius; stops when accumulated path length is reached.
+inline void emit_archimedean_spiral_wipe(IWipeTowerPathWriter &writer, const Vec2f &center, float max_radius,
+                                         float pitch, float feedrate, float length_target)
+{
+    if (pitch <= 0.f || max_radius <= 0.f || length_target <= 0.f)
+        return;
+
+    const float two_pi     = float(2.0 * M_PI);
+    const float theta_step = 0.35f;
+    float       theta      = 0.f;
+    float       accumulated = 0.f;
+
+    auto point_at = [&](float t) {
+        const float r = std::min(max_radius, pitch * t / two_pi);
+        return Vec2f(center.x() + r * std::cos(t), center.y() + r * std::sin(t));
+    };
+
+    Vec2f prev = point_at(theta);
+    writer.travel(prev, feedrate);
+
+    while (accumulated < length_target) {
+        theta += theta_step;
+        const Vec2f pt  = point_at(theta);
+        const float dx  = pt.x() - prev.x();
+        const float dy  = pt.y() - prev.y();
+        const float len = std::sqrt(dx * dx + dy * dy);
+        if (len < 1e-5f)
+            continue;
+        writer.extrude(pt, feedrate);
+        accumulated += len;
+        prev = pt;
     }
 }
 

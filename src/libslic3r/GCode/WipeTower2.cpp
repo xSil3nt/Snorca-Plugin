@@ -2361,10 +2361,12 @@ WipeTower::ToolChangeResult WipeTower2::finish_layer()
     if (!plugin_scaffold && fill_box.ru.y() - fill_box.rd.y() > m_perimeter_width - WT_EPSILON)
         writer.rectangle(fill_box.ld, fill_box.rd.x() - fill_box.ld.x(), fill_box.ru.y() - fill_box.rd.y(), feedrate);
 
-    if (writer.x() > fill_box.ld.x() + EPSILON)
-        writer.travel(fill_box.ld.x(), writer.y());
-    if (writer.y() > fill_box.ld.y() + EPSILON)
-        writer.travel(writer.x(), fill_box.ld.y());
+    if (!plugin_scaffold) {
+        if (writer.x() > fill_box.ld.x() + EPSILON)
+            writer.travel(fill_box.ld.x(), writer.y());
+        if (writer.y() > fill_box.ld.y() + EPSILON)
+            writer.travel(writer.x(), fill_box.ld.y());
+    }
 
     float left  = fill_box.lu.x() + 2 * m_perimeter_width;
     float right = fill_box.ru.x() - 2 * m_perimeter_width;

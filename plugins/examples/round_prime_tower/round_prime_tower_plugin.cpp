@@ -47,22 +47,19 @@ public:
         const auto &box      = ctx.fill_box;
         const auto  center   = box_center(box);
 
-        float outer_r = inner_radius_from_box(box.ld, box.ru, 0.f) + pw;
+        float outer_r = inner_radius_from_box(box.ld, box.ru, pw);
         float inner_r = inner_radius_from_box(box.ld, box.ru, 2.f * pw);
         if (outer_r <= inner_r)
             return true;
 
         const float ring_step = ctx.solid_infill ? pw : pw * 1.5f;
-        const float min_chord = pw - 1e-3f;
 
         if (ctx.solid_infill && ctx.layer.first_layer) {
-            outer_r = std::min(outer_r + pw, 0.5f * std::min(box.ru.x() - box.ld.x(), box.ru.y() - box.ld.y()));
+            outer_r = std::min(outer_r + pw * 0.5f,
+                               0.5f * std::min(box.ru.x() - box.ld.x(), box.ru.y() - box.ld.y()) - pw);
         }
 
-        emit_concentric_rings(center, outer_r, inner_r, ring_step, box.ld, box.ru, min_chord,
-                              [&](float x1, float y, float x2) {
-                                  writer.extrude(x1, y, feedrate).extrude(x2, y);
-                              });
+        emit_concentric_ring_loops(writer, center, outer_r, inner_r, ring_step, feedrate, !ctx.solid_infill);
         return true;
     }
 
@@ -77,46 +74,23 @@ public:
         const float line_width = ctx.layer.perimeter_width * ctx.layer.extra_flow;
         writer.change_analyzer_line_width(line_width);
 
-        const auto &box    = ctx.cleaning_box;
-        const auto  center = box_center(box);
-        const float inner_r = inner_radius_from_box(box.ld, box.ru, ctx.layer.perimeter_width);
-        const float min_len = ctx.layer.perimeter_width - 1e-3f;
+        const auto &box     = ctx.cleaning_box;
+        const auto  center  = box_center(box);
+        const float inner_r = inner_radius_from_box(box.ld, box.ru, ctx.layer.perimeter_width * 1.5f);
 
         const float target_speed = ctx.layer.first_layer ?
                                        ctx.layer.first_layer_speed * 60.f :
                                        std::min(ctx.layer.max_purge_speed * 60.f, ctx.layer.infill_speed * 60.f);
-        float       wipe_speed   = 0.33f * target_speed;
+        float wipe_speed = 0.33f * target_speed;
 
-        float length_needed = ctx.layer.host->volume_to_length(ctx.wipe_volume, ctx.layer.perimeter_width,
-                                                               ctx.layer.layer_height) /
-                              ctx.layer.extra_flow;
-        const float dy = (ctx.layer.first_layer ? ctx.layer.extra_flow : ctx.layer.extra_spacing_wipe) *
-                         ctx.layer.perimeter_width;
+        const float length_needed = ctx.layer.host->volume_to_length(ctx.wipe_volume, ctx.layer.perimeter_width,
+                                                                     ctx.layer.layer_height) /
+                                    ctx.layer.extra_flow;
+        const float pitch = (ctx.layer.first_layer ? ctx.layer.extra_flow : ctx.layer.extra_spacing_wipe) *
+                            ctx.layer.perimeter_width;
 
-        bool  left_to_right = ctx.layer.left_to_right;
-        float y             = writer.y();
-        if (y < box.ld.y() + dy)
-            y = box.ld.y() + dy;
-
-        for (int row = 0; length_needed > 1e-3f && y <= box.lu.y() + 1e-3f; ++row) {
-            if (row > 0) {
-                writer.extrude(writer.x(), y, wipe_speed);
-                if (wipe_speed < target_speed)
-                    wipe_speed = std::min(target_speed, wipe_speed + 50.f);
-            }
-
-            float x_low = 0.f;
-            float x_high = 0.f;
-            if (!circle_chord_at_y(y, center.x(), center.y(), inner_r, box.ld.x(), box.ru.x(), min_len, x_low, x_high))
-                break;
-
-            const float x_target = left_to_right ? x_high : x_low;
-            const float dx       = std::abs(x_target - writer.x());
-            writer.extrude(x_target, y, wipe_speed);
-            length_needed -= dx;
-            left_to_right = !left_to_right;
-            y += dy;
-        }
+        writer.feedrate(wipe_speed);
+        emit_archimedean_spiral_wipe(writer, center, inner_r, pitch, wipe_speed, length_needed);
 
         writer.set_extrusion_flow(ctx.layer.extrusion_flow);
         writer.change_analyzer_line_width(ctx.layer.perimeter_width);
