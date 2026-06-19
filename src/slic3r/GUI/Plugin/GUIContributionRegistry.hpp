@@ -9,7 +9,10 @@
 namespace Slic3r {
 
 class DynamicPrintConfig;
+
+namespace GUI {
 class ConfigManipulation;
+}
 
 struct GUIVisibilityRule
 {
@@ -32,7 +35,7 @@ public:
 
     void register_option_line(const GUIOptionContribution &contribution);
     void register_visibility_rule(const GUIVisibilityRule &rule);
-    void apply_visibility_rules(ConfigManipulation *config_manipulation, const DynamicPrintConfig *config) const;
+    void apply_visibility_rules(GUI::ConfigManipulation *config_manipulation, const DynamicPrintConfig *config) const;
 
     const std::vector<GUIOptionContribution> &option_lines() const { return m_option_lines; }
 

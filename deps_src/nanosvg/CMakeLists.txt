@@ -2,14 +2,9 @@ cmake_minimum_required(VERSION 3.13)
 
 project(nanosvg)
 
-add_library(nanosvg INTERFACE)
+add_library(nanosvg STATIC nanosvg_impl.cpp)
 
 target_include_directories(nanosvg SYSTEM
-    INTERFACE
+    PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
-)
-
-target_sources(nanosvg INTERFACE
-    ${CMAKE_CURRENT_SOURCE_DIR}/nanosvg.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/nanosvgrast.h
 )

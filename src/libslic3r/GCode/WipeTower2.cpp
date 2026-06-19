@@ -2308,6 +2308,8 @@ WipeTower::ToolChangeResult WipeTower2::finish_layer()
             ctx.wt_box = &wt_box_default;
         }
         poly = shape->generate_wall(ctx);
+        if (!shape->includes_extruded_perimeter())
+            poly = extrude_perimeter_polygon(writer, poly, feedrate, ctx.skip_points, true);
     } else if (m_wall_type == (int) wtwCone) {
         WipeTower::box_coordinates wt_box(Vec2f(0.f, (m_current_shape == SHAPE_REVERSED ? m_layer_info->toolchanges_depth() : 0.f)),
                                           m_wipe_tower_width, m_layer_info->depth + m_perimeter_width);

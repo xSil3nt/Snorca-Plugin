@@ -9,6 +9,7 @@
 #include "MsgDialog.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Plugin/PluginManager.hpp"
+#include "Plugin/GUIContributionRegistry.hpp"
 
 #include <wx/msgdlg.h>
 

@@ -30,7 +30,7 @@ void ConfigSchemaRegistry::apply_to_print_config_def()
     PrintConfigDef &def = const_cast<PrintConfigDef &>(print_config_def);
 
     for (const PluginEnumExtension &ext : m_enum_extensions) {
-        ConfigOptionDef *optdef = def.get(ext.option_key);
+        ConfigOptionDef *optdef = const_cast<ConfigOptionDef *>(def.get(ext.option_key));
         if (optdef == nullptr) {
             BOOST_LOG_TRIVIAL(warning) << "ConfigSchemaRegistry: cannot extend unknown enum option " << ext.option_key;
             continue;

@@ -1,48 +1,7 @@
 #include "orca/plugin/PluginABI.hpp"
 #include "orca/plugin/PluginContext.hpp"
 
-#include "libslic3r/GCode/WipeTower2.hpp"
-#include "libslic3r/libslic3r.h"
-#include "libslic3r/Print.hpp"
-#include "libslic3r/PrintConfig.hpp"
-
-#include <cmath>
-#include <memory>
-
 using namespace Slic3r;
-
-namespace {
-
-class RoundWipeTowerShape : public IWipeTowerShape
-{
-public:
-    std::string key() const override { return "round"; }
-
-    Polygon generate_wall(const WipeTowerWallContext &ctx) override
-    {
-        if (ctx.tower == nullptr || ctx.writer == nullptr || ctx.wt_box == nullptr)
-            return {};
-
-        const Vec2f center = (ctx.wt_box->ld + ctx.wt_box->ru) / 2.f;
-        const float width  = ctx.wt_box->ru.x() - ctx.wt_box->ld.x();
-        const float height = ctx.wt_box->ru.y() - ctx.wt_box->ld.y();
-        const float radius = 0.5f * std::min(width, height);
-
-        Polygon circle;
-        constexpr int segments = 48;
-        circle.points.reserve(segments);
-        for (int i = 0; i < segments; ++i) {
-            const float angle = float(2.0 * M_PI * i / segments);
-            circle.points.emplace_back(
-                coord_t(scale_(center.x() + radius * std::cos(angle))),
-                coord_t(scale_(center.y() + radius * std::sin(angle))));
-        }
-
-        return ctx.tower->extrude_perimeter_polygon(*ctx.writer, circle, ctx.feedrate, ctx.skip_points, true);
-    }
-};
-
-} // namespace
 
 static void register_round_prime_tower(PluginContext &ctx)
 {
@@ -52,8 +11,6 @@ static void register_round_prime_tower(PluginContext &ctx)
     enum_ext.enum_labels = {"Round"};
     ctx.config_schema().extend_enum(enum_ext);
 
-    ctx.wipe_tower_shapes().register_provider("round", []() { return std::make_unique<RoundWipeTowerShape>(); });
-
     PluginGUIOptionLine gui_line;
     gui_line.optgroup_key = "multimaterial_settings_prime_tower";
     gui_line.option_key   = "wipe_tower_wall_type";
@@ -61,7 +18,7 @@ static void register_round_prime_tower(PluginContext &ctx)
     ctx.gui_support().register_option_line(gui_line);
 }
 
-extern "C" Slic3r::OrcaPluginDescriptor *orca_plugin_main()
+ORCA_PLUGIN_API Slic3r::OrcaPluginDescriptor *orca_plugin_main()
 {
     static OrcaPluginDescriptor descriptor{
         "orca.round_prime_tower",

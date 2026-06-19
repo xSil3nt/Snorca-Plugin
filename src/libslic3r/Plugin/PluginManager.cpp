@@ -1,6 +1,7 @@
 #include "PluginManager.hpp"
 
 #include "PluginABI.hpp"
+#include "PluginContext.hpp"
 #include "WallGeneratorRegistry.hpp"
 #include "InfillProviderRegistryImpl.hpp"
 #include "WipeTowerShapeRegistry.hpp"
@@ -151,6 +152,10 @@ bool PluginManager::load_unpacked_plugin(const std::string &plugin_root, std::st
     plugin.root_path = plugin_root;
     if (!PluginManifest::load_from_file(manifest_path.string(), plugin.manifest, error))
         return false;
+    for (const LoadedPlugin &existing : m_plugins) {
+        if (existing.manifest.id == plugin.manifest.id)
+            return true;
+    }
     if (!check_version_gate(plugin.manifest, error))
         return false;
 
@@ -230,11 +235,26 @@ void PluginManager::load_orcaplugin_package(const std::string &package_path, std
         return;
     }
 
-    if (!mz_zip_reader_extract_all_to_dir(&zip, temp_dir.string().c_str(), 0)) {
-        mz_zip_reader_end(&zip);
-        error = "failed to extract .orcaplugin archive: " + package_path;
-        fs::remove_all(temp_dir);
-        return;
+    const mz_uint file_count = mz_zip_reader_get_num_files(&zip);
+    for (mz_uint i = 0; i < file_count; ++i) {
+        mz_zip_archive_file_stat stat{};
+        if (!mz_zip_reader_file_stat(&zip, i, &stat))
+            continue;
+        const fs::path dest = (temp_dir / stat.m_filename).lexically_normal();
+        const std::string rel = dest.lexically_relative(temp_dir).generic_string();
+        if (rel.empty() || rel.find("..") == 0)
+            continue;
+        if (stat.m_is_directory) {
+            fs::create_directories(dest);
+            continue;
+        }
+        fs::create_directories(dest.parent_path());
+        if (!mz_zip_reader_extract_to_file(&zip, i, dest.string().c_str(), 0)) {
+            mz_zip_reader_end(&zip);
+            error = "failed to extract .orcaplugin archive: " + package_path;
+            fs::remove_all(temp_dir);
+            return;
+        }
     }
     mz_zip_reader_end(&zip);
 
@@ -261,7 +281,7 @@ bool PluginManager::deserialize_extended_enum(ConfigOption *opt, const ConfigOpt
 std::string PluginManager::enum_key_for_value(const std::string &option_key, int int_value) const
 {
     auto option_it = m_plugin_enum_values.find(option_key);
-    if (option_it == option_it->end())
+    if (option_it == m_plugin_enum_values.end())
         return {};
     for (const auto &kv : option_it->second) {
         if (kv.second == int_value)
@@ -277,6 +297,11 @@ int PluginManager::enum_value_for_key(const std::string &option_key, const std::
         return -1;
     auto value_it = option_it->second.find(enum_key);
     return value_it == option_it->second.end() ? -1 : value_it->second;
+}
+
+bool plugin_deserialize_extended_enum(ConfigOption *opt, const ConfigOptionDef *optdef, const std::string &value)
+{
+    return PluginManager::instance().deserialize_extended_enum(opt, optdef, value);
 }
 
 } // namespace Slic3r

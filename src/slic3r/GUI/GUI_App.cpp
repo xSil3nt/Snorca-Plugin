@@ -2,6 +2,7 @@
 #include "libslic3r/FilamentHotBedNozzleRules.hpp"
 #include "GUI_App.hpp"
 #include "Plugin/PluginGUIIntegration.hpp"
+#include "libslic3r/Plugin/PluginLoader.hpp"
 #include "GUI_Init.hpp"
 #include "GUI_ObjectList.hpp"
 #include "GUI_Factories.hpp"
@@ -2319,7 +2320,7 @@ void GUI_App::report_flutter_web_copy_failure(FlutterWebCopyStatus status)
              m_flutter_web_copy_status != FlutterWebCopyStatus::InstallFailed)
         m_flutter_web_copy_status = FlutterWebCopyStatus::UpgradeFailed;
     else 
-        BOOST_LOG_TRIVIAL(error) << "FlutterWebCopyStatus not exit " << status;
+        BOOST_LOG_TRIVIAL(error) << "FlutterWebCopyStatus not exit " << static_cast<int>(status);
 }
 
 void GUI_App::do_notify_flutter_web_copy_failure()
@@ -2344,7 +2345,7 @@ void GUI_App::do_notify_flutter_web_copy_failure()
         }
         break;
     default: 
-        BOOST_LOG_TRIVIAL(error) << "FlutterWebCopyStatus other status" << m_flutter_web_copy_status;
+        BOOST_LOG_TRIVIAL(error) << "FlutterWebCopyStatus other status" << static_cast<int>(m_flutter_web_copy_status);
         break;
     }
 }
@@ -2560,6 +2561,7 @@ bool GUI_App::on_init_inner()
 #endif
     profiler.mark("wx init/log/image handlers");
 
+    load_orca_plugins_from_datadir();
     sync_plugin_gui_contributions_from_manager();
 
 #if defined(_WIN32) && ! defined(_WIN64)

@@ -22,9 +22,22 @@ void load_orca_plugins(const std::vector<std::string> &explicit_paths)
             BOOST_LOG_TRIVIAL(warning) << "Failed to load plugin from --load-plugin: " << error;
     }
 
-    const std::string plugins_dir = (boost::filesystem::path(get_data_dir()) / "plugins").string();
+    // GUI mode sets data_dir later; scan <datadir>/plugins once it is known.
+    if (!data_dir().empty())
+        load_orca_plugins_from_datadir();
+    else
+        manager.apply_config_schema();
+}
+
+void load_orca_plugins_from_datadir()
+{
+    if (data_dir().empty())
+        return;
+
+    PluginManager &manager = PluginManager::instance();
+    manager.initialize();
+    const std::string plugins_dir = (boost::filesystem::path(data_dir()) / "plugins").string();
     manager.load_plugins_from_directory(plugins_dir);
-    manager.apply_config_schema();
 }
 
 } // namespace Slic3r

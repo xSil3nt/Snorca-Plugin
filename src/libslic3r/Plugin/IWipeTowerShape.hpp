@@ -2,6 +2,7 @@
 #define slic3r_IWipeTowerShape_hpp_
 
 #include "AlgorithmProviderRegistry.hpp"
+#include "libslic3r/GCode/WipeTower.hpp"
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/Point.hpp"
 
@@ -12,8 +13,6 @@ namespace Slic3r {
 
 class WipeTower2;
 class WipeTowerWriter2;
-
-namespace WipeTower { struct box_coordinates; }
 
 struct WipeTowerWallContext
 {
@@ -34,6 +33,8 @@ public:
     virtual std::string key() const = 0;
     virtual bool needs_plan_tower_prep() const { return false; }
     virtual void plan_tower_prep(WipeTower2 &tower) { (void) tower; }
+    // Built-in shapes extrude inside generate_wall(); plugin shapes return geometry only.
+    virtual bool includes_extruded_perimeter() const { return true; }
     virtual Polygon generate_wall(const WipeTowerWallContext &ctx) = 0;
 };
 

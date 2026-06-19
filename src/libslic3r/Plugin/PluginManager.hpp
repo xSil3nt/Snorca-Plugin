@@ -1,9 +1,14 @@
 #ifndef slic3r_PluginManager_hpp_
 #define slic3r_PluginManager_hpp_
 
+#include "ConfigSchemaRegistry.hpp"
+#include "InfillProviderRegistry.hpp"
 #include "PluginGUISupport.hpp"
 #include "PluginManifest.hpp"
 #include "SharedLibrary.hpp"
+#include "SlicingHookBus.hpp"
+#include "WallGeneratorRegistry.hpp"
+#include "WipeTowerShapeRegistry.hpp"
 
 #include <map>
 #include <memory>

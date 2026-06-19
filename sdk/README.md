@@ -19,7 +19,7 @@ target_link_libraries(my_plugin PRIVATE OrcaPluginSDK libslic3r)
 Each plugin must export:
 
 ```cpp
-extern "C" Slic3r::OrcaPluginDescriptor *orca_plugin_main();
+ORCA_PLUGIN_API Slic3r::OrcaPluginDescriptor *orca_plugin_main();
 ```
 
 Package your plugin as a directory or `.orcaplugin` zip containing:

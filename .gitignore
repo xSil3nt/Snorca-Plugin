@@ -39,6 +39,8 @@ src/Snapmaker_Orca-doc/
 resources/profiles/user/default
 *.code-workspace
 deps_src/build/
+plugins/examples/**/Release/
+plugins/examples/**/Debug/
 .claude/
 .hermes/
 CLAUDE.md

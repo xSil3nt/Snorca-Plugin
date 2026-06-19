@@ -22,7 +22,7 @@ void GUIContributionRegistry::register_visibility_rule(const GUIVisibilityRule &
     m_visibility_rules.push_back(rule);
 }
 
-void GUIContributionRegistry::apply_visibility_rules(ConfigManipulation *config_manipulation, const DynamicPrintConfig *config) const
+void GUIContributionRegistry::apply_visibility_rules(GUI::ConfigManipulation *config_manipulation, const DynamicPrintConfig *config) const
 {
     if (config_manipulation == nullptr || config == nullptr)
         return;

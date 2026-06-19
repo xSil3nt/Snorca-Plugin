@@ -7,6 +7,7 @@
 namespace Slic3r {
 
 void load_orca_plugins(const std::vector<std::string> &explicit_paths = {});
+void load_orca_plugins_from_datadir();
 
 } // namespace Slic3r
 

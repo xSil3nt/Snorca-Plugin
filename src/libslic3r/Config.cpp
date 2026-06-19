@@ -1,5 +1,5 @@
 #include "Config.hpp"
-#include "Plugin/PluginManager.hpp"
+#include "Plugin/PluginIntegration.hpp"
 #include "format.hpp"
 #include "Utils.hpp"
 #include "LocalesUtils.hpp"
@@ -631,7 +631,7 @@ bool ConfigBase::set_deserialize_raw(const t_config_option_key &opt_key_src, con
 		//bool test = (opt_key == "filament_end_gcode");
 		success = opt->deserialize(value, append);
 	    if (! success && optdef->type == coEnum) {
-            success = PluginManager::instance().deserialize_extended_enum(opt, optdef, value);
+            success = plugin_deserialize_extended_enum(opt, optdef, value);
         }
 	    if (! success && substitutions_ctxt.rule != ForwardCompatibilitySubstitutionRule::Disable &&
 	        // Only allow substitutions of an enum value by another enum value or a boolean value with an enum value.

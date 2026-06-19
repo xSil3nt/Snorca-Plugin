@@ -1,7 +1,7 @@
 #ifndef slic3r_SlicingHookBus_hpp_
 #define slic3r_SlicingHookBus_hpp_
 
-#include "libslic3r/Print.hpp"
+#include "libslic3r/Config.hpp"
 
 #include <functional>
 #include <mutex>
@@ -12,6 +12,8 @@ namespace Slic3r {
 
 class Print;
 class PrintObject;
+enum PrintStep : int;
+enum PrintObjectStep : int;
 
 enum class SlicingHookPhase {
     BeforePrintStep,
@@ -25,10 +27,10 @@ struct SlicingHookContext
 {
     Print                              *print{nullptr};
     PrintObject                        *print_object{nullptr};
-    PrintStep                           print_step{psCount};
-    PrintObjectStep                     object_step{posCount};
+    PrintStep                           print_step;
+    PrintObjectStep                     object_step;
     std::string                         gcode_path;
-    const DynamicPrintConfig           *config{nullptr};
+    const ConfigBase                   *config{nullptr};
 };
 
 using SlicingHookFn = std::function<void(const SlicingHookContext &ctx)>;
