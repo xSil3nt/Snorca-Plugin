@@ -1828,10 +1828,10 @@ void WipeTower2::toolchange_Unload(WipeTowerWriter2&                 writer,
         layer_ctx.left_to_right      = m_left_to_right;
         layer_ctx.host               = &services;
         WipeTowerToolchangeContext ctx;
-        ctx.layer         = layer_ctx;
-        ctx.cleaning_box  = to_sdk_box(cleaning_box);
-        ctx.old_temp      = old_temperature;
-        ctx.new_temp      = new_temperature;
+        ctx.layer        = layer_ctx;
+        ctx.cleaning_box = to_sdk_box(cleaning_box);
+        ctx.old_temp     = old_temperature;
+        ctx.new_temp     = new_temperature;
         if (shape->generate_toolchange_unload(ctx, adapter))
             return;
     }
@@ -1904,6 +1904,30 @@ void WipeTower2::toolchange_Unload(WipeTowerWriter2&                 writer,
     }
 
     // now the ramming itself:
+    bool plugin_ramming = false;
+    if (auto shape = wipe_tower_shape_registry().create(wall_shape_key)) {
+        WipeTowerPathWriterAdapter adapter(writer);
+        WipeTowerHostServices      services = make_wipe_tower_host_services();
+        WipeTowerRammingContext    rctx;
+        rctx.layer.layer_height       = m_layer_height;
+        rctx.layer.perimeter_width    = m_perimeter_width;
+        rctx.layer.host               = &services;
+        rctx.cleaning_box             = to_sdk_box(cleaning_box);
+        rctx.depth_traversed          = m_depth_traversed;
+        rctx.line_width               = line_width;
+        rctx.y_step                   = y_step;
+        rctx.filament_area            = filament_area();
+        rctx.extra_spacing_ramming    = m_extra_spacing_ramming;
+        rctx.do_ramming               = do_ramming;
+        rctx.semm                     = m_semm;
+        rctx.multitool_ramming_time   = m_filpar[m_current_tool].multitool_ramming_time;
+        rctx.ramming_speed            = m_filpar[m_current_tool].ramming_speed;
+        if (m_active_tool_change != nullptr)
+            rctx.first_wipe_line = m_active_tool_change->first_wipe_line;
+        plugin_ramming = shape->generate_toolchange_ramming(rctx, adapter);
+    }
+
+    if (!plugin_ramming) {
     while (do_ramming && i < m_filpar[m_current_tool].ramming_speed.size() && !is_over_tower_height) {
         // The time step is different for SEMM ramming and the MM ramming. See comments in set_extruder() for details.
         const float time_step = m_semm ? 0.25f : m_filpar[m_current_tool].multitool_ramming_time;
@@ -1925,6 +1949,7 @@ void WipeTower2::toolchange_Unload(WipeTowerWriter2&                 writer,
             ++i;
             e_done = 0;
         }
+    }
     }
     Vec2f end_of_ramming(writer.x(), writer.y());
     writer.change_analyzer_line_width(m_perimeter_width); // so the next lines are not affected by ramming_line_width_multiplier

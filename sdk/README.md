@@ -58,7 +58,7 @@ Plugins are loaded from:
 
 - `IWipeTowerPathWriter` — path emission surface for plugin overrides
 - `WipeTowerTypes.hpp` — shared contexts and `WipeTowerHostServices`
-- Optional virtual hooks on `IWipeTowerShape` (`generate_sparse_scaffold`, `generate_toolchange_wipe`, etc.) return `false` by default; the host delegates to plugins when they return `true`.
+- Optional virtual hooks on `IWipeTowerShape` (`generate_sparse_scaffold`, `generate_toolchange_wipe`, `generate_toolchange_ramming`, etc.) return `false` by default; the host delegates to plugins when they return `true`.
 
 ## Examples
 

@@ -76,5 +76,6 @@ TEST_CASE("Wipe tower default hooks return false", "[Plugin][WipeTower]")
     WipeTowerToolchangeContext toolchange_ctx;
 
     REQUIRE_FALSE(shape.generate_toolchange_wipe(toolchange_ctx, writer));
+    REQUIRE_FALSE(shape.generate_toolchange_ramming(WipeTowerRammingContext{}, writer));
     REQUIRE(shape.get_wipe_channel_width({}) == 0.f);
 }

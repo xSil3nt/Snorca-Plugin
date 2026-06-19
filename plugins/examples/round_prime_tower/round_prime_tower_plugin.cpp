@@ -81,7 +81,7 @@ public:
         const float target_speed = ctx.layer.first_layer ?
                                        ctx.layer.first_layer_speed * 60.f :
                                        std::min(ctx.layer.max_purge_speed * 60.f, ctx.layer.infill_speed * 60.f);
-        float wipe_speed = 0.33f * target_speed;
+        const float wipe_speed = 0.33f * target_speed;
 
         const float length_needed = ctx.layer.host->volume_to_length(ctx.wipe_volume, ctx.layer.perimeter_width,
                                                                      ctx.layer.layer_height) /
@@ -93,6 +93,34 @@ public:
         emit_archimedean_spiral_wipe(writer, center, inner_r, pitch, wipe_speed, length_needed);
 
         writer.set_extrusion_flow(ctx.layer.extrusion_flow);
+        writer.change_analyzer_line_width(ctx.layer.perimeter_width);
+        return true;
+    }
+
+    bool generate_toolchange_ramming(const WipeTowerRammingContext &ctx, IWipeTowerPathWriter &writer) override
+    {
+        if (!ctx.do_ramming || ctx.layer.host == nullptr || ctx.layer.host->volume_to_length == nullptr)
+            return false;
+
+        const auto &box    = ctx.cleaning_box;
+        const auto  center = box_center(box);
+        const float inner_r = inner_radius_from_box(box.ld, box.ru, ctx.layer.perimeter_width * 1.5f);
+        const float pitch   = ctx.y_step;
+
+        const float y_start = box.ld.y() + ctx.depth_traversed + ctx.y_step * 0.5f;
+        writer.travel(center.x() + inner_r * 0.5f, y_start, 7200.f);
+
+        const float time_step = ctx.semm ? 0.25f : ctx.multitool_ramming_time;
+        float       theta     = 0.f;
+        const float feedrate  = 6000.f;
+
+        for (size_t i = 0; i < ctx.ramming_speed.size(); ++i) {
+            const float volume = ctx.ramming_speed[i] * time_step;
+            const float length = ctx.layer.host->volume_to_length(volume, ctx.line_width, ctx.layer.layer_height);
+            const float e      = volume / ctx.filament_area;
+            emit_round_ram_segment(writer, center, inner_r, pitch, theta, length, e, feedrate);
+        }
+
         writer.change_analyzer_line_width(ctx.layer.perimeter_width);
         return true;
     }

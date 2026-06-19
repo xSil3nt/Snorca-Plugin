@@ -33,6 +33,12 @@ public:
         (void) writer;
         return false;
     }
+    virtual bool generate_toolchange_ramming(const WipeTowerRammingContext &ctx, IWipeTowerPathWriter &writer)
+    {
+        (void) ctx;
+        (void) writer;
+        return false;
+    }
     virtual bool generate_toolchange_unload(const WipeTowerToolchangeContext &ctx, IWipeTowerPathWriter &writer)
     {
         (void) ctx;

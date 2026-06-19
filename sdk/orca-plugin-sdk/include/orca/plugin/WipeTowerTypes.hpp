@@ -78,11 +78,27 @@ struct WipeTowerToolchangeContext
     int                     old_tool{0};
     int                     old_temp{0};
     int                     new_temp{0};
-    float                   filament_diameter{0.f};
     float                   retract_length{0.f};
     float                   retract_speed{0.f};
     float                   flat_iron_area{0.f};
     bool                    use_gap_wall{false};
+};
+
+// Ramming-only context; host still runs retraction/cooling after plugin ramming.
+struct WipeTowerRammingContext
+{
+    WipeTowerLayerContext    layer;
+    WipeTowerBoxCoordinates  cleaning_box;
+    float                    depth_traversed{0.f};
+    float                    line_width{0.f};
+    float                    y_step{0.f};
+    float                    filament_area{0.f};
+    float                    extra_spacing_ramming{1.f};
+    bool                     do_ramming{false};
+    bool                     semm{true};
+    float                    multitool_ramming_time{0.f};
+    float                    first_wipe_line{0.f};
+    std::vector<float>       ramming_speed;
 };
 
 struct WipeTowerPlanningContext

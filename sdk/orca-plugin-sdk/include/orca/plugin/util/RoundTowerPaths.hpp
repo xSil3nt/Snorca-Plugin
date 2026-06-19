@@ -100,6 +100,38 @@ inline void emit_archimedean_spiral_wipe(IWipeTowerPathWriter &writer, const Vec
     }
 }
 
+// Distribute a fixed extrusion amount along a short spiral segment (ramming).
+inline void emit_round_ram_segment(IWipeTowerPathWriter &writer, const Vec2f &center, float max_radius, float pitch,
+                                   float &theta, float segment_length, float segment_e, float feedrate)
+{
+    if (segment_length <= 0.f || segment_e <= 0.f)
+        return;
+
+    const float two_pi      = float(2.0 * M_PI);
+    const float theta_step  = 0.25f;
+    float       accumulated = 0.f;
+    float       e_used        = 0.f;
+
+    auto point_at = [&](float t) {
+        const float r = std::min(max_radius, pitch * t / two_pi);
+        return Vec2f(center.x() + r * std::cos(t), center.y() + r * std::sin(t));
+    };
+
+    Vec2f prev = point_at(theta);
+    while (accumulated < segment_length - 1e-4f) {
+        theta += theta_step;
+        const Vec2f pt  = point_at(theta);
+        const float len = std::sqrt((pt.x() - prev.x()) * (pt.x() - prev.x()) + (pt.y() - prev.y()) * (pt.y() - prev.y()));
+        if (len < 1e-5f)
+            continue;
+        const float e = segment_e * std::min(1.f, (accumulated + len) / segment_length) - e_used;
+        writer.extrude_explicit(pt, e, feedrate);
+        accumulated += len;
+        e_used += e;
+        prev = pt;
+    }
+}
+
 } // namespace RoundTowerPaths
 } // namespace PluginGeo
 } // namespace Slic3r

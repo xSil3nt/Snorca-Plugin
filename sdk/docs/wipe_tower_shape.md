@@ -31,6 +31,7 @@ The provider key must match the enum value string.
 | `generate_wall` | Return a `PluginGeo::Polygon` outline (host extrudes unless `includes_extruded_perimeter()` is true) |
 | `generate_sparse_scaffold` | Optional: concentric/grid infill inside the tower; return `true` to skip built-in rectangular infill |
 | `generate_toolchange_wipe` | Optional: custom purge paths during tool changes |
+| `generate_toolchange_ramming` | Optional: custom ramming paths (host still runs retraction/cooling) |
 | `get_wipe_channel_width` | Optional: return `> 0` to override depth planning width (`width - 3*pw` default) |
 
 Use `IWipeTowerPathWriter` for all extrusion/travel G-code. Access volume math via `WipeTowerHostServices` on the layer context (`ctx.layer.host`).
