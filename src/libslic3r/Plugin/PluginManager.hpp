@@ -12,10 +12,13 @@
 
 #include <map>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
 namespace Slic3r {
+
+struct ConfigOptionDef;
 
 struct LoadedPlugin
 {
@@ -48,6 +51,10 @@ public:
     bool deserialize_extended_enum(ConfigOption *opt, const ConfigOptionDef *optdef, const std::string &value) const;
     std::string enum_key_for_value(const std::string &option_key, int int_value) const;
     int         enum_value_for_key(const std::string &option_key, const std::string &enum_key) const;
+    // Map combo-box index <-> stored enum integer when plugin-extended values do not match indices.
+    int         enum_int_from_combo_index(const ConfigOptionDef &opt, int combo_index) const;
+    int         enum_combo_index_from_int(const ConfigOptionDef &opt, int enum_int) const;
+    std::string serialize_extended_enum(const ConfigOptionDef &optdef, int int_value) const;
 
 private:
     PluginManager() = default;
@@ -58,6 +65,7 @@ private:
     std::string platform_library_name(const std::string &base_name) const;
 
     bool                        m_initialized{false};
+    mutable std::mutex          m_init_mutex;
     std::vector<LoadedPlugin>   m_plugins;
     ConfigSchemaRegistry        m_global_config_schema;
     WipeTowerShapeRegistry      m_wipe_tower_shapes;

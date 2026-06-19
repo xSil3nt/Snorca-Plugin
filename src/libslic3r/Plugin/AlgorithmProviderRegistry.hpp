@@ -30,11 +30,18 @@ public:
 
     std::unique_ptr<Interface> create(const std::string &key) const
     {
-        std::lock_guard<std::mutex> lock(m_mutex);
-        auto it = m_providers.find(key);
-        if (it == m_providers.end())
-            return nullptr;
-        return it->second();
+        // Copy the factory out and release the lock before invoking it, so a
+        // factory that calls back into this registry on the same thread cannot
+        // self-deadlock (EDEADLK) on m_mutex.
+        Factory factory;
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            auto it = m_providers.find(key);
+            if (it == m_providers.end())
+                return nullptr;
+            factory = it->second;
+        }
+        return factory ? factory() : nullptr;
     }
 
     std::vector<std::string> keys() const

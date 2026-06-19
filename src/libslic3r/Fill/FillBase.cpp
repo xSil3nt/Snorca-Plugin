@@ -84,6 +84,11 @@ Fill* Fill::new_from_type(const InfillPattern type)
     return fill_new_from_type_builtin(type);
 }
 
+Fill* Fill::new_from_type_builtin(const InfillPattern type)
+{
+    return fill_new_from_type_builtin(type);
+}
+
 Fill* Fill::new_from_type(const std::string &type)
 {
     if (Fill *fill = create_infill_from_key(type))

@@ -7,6 +7,8 @@
 #include "WipeTowerShapeRegistry.hpp"
 
 #include "libslic3r/Semver.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/miniz_extension.hpp"
 
 #include <boost/filesystem.hpp>
@@ -25,6 +27,7 @@ PluginManager &PluginManager::instance()
 
 void PluginManager::initialize()
 {
+    std::lock_guard<std::mutex> init_lock(m_init_mutex);
     if (m_initialized)
         return;
     register_builtin_wipe_tower_shapes();
@@ -299,9 +302,73 @@ int PluginManager::enum_value_for_key(const std::string &option_key, const std::
     return value_it == option_it->second.end() ? -1 : value_it->second;
 }
 
+int PluginManager::enum_int_from_combo_index(const ConfigOptionDef &opt, int combo_index) const
+{
+    if (combo_index < 0 || combo_index >= int(opt.enum_values.size()))
+        return combo_index;
+    const std::string &key = opt.enum_values[size_t(combo_index)];
+    if (opt.enum_keys_map) {
+        auto it = opt.enum_keys_map->find(key);
+        if (it != opt.enum_keys_map->end())
+            return it->second;
+    }
+    const int plugin_val = enum_value_for_key(opt.opt_key, key);
+    return plugin_val >= 0 ? plugin_val : combo_index;
+}
+
+int PluginManager::enum_combo_index_from_int(const ConfigOptionDef &opt, int enum_int) const
+{
+    std::string key;
+    if (opt.enum_keys_map) {
+        for (const auto &kv : *opt.enum_keys_map) {
+            if (kv.second == enum_int) {
+                key = kv.first;
+                break;
+            }
+        }
+    }
+    if (key.empty())
+        key = enum_key_for_value(opt.opt_key, enum_int);
+    if (!key.empty()) {
+        for (size_t i = 0; i < opt.enum_values.size(); ++i) {
+            if (opt.enum_values[i] == key)
+                return int(i);
+        }
+    }
+    if (enum_int >= 0 && enum_int < int(opt.enum_values.size()))
+        return enum_int;
+    return 0;
+}
+
+std::string PluginManager::serialize_extended_enum(const ConfigOptionDef &optdef, int int_value) const
+{
+    if (optdef.enum_keys_map) {
+        for (const auto &kv : *optdef.enum_keys_map) {
+            if (kv.second == int_value)
+                return kv.first;
+        }
+    }
+    return enum_key_for_value(optdef.opt_key, int_value);
+}
+
 bool plugin_deserialize_extended_enum(ConfigOption *opt, const ConfigOptionDef *optdef, const std::string &value)
 {
     return PluginManager::instance().deserialize_extended_enum(opt, optdef, value);
+}
+
+std::string plugin_serialize_extended_enum(const ConfigOptionDef &optdef, int int_value)
+{
+    return PluginManager::instance().serialize_extended_enum(optdef, int_value);
+}
+
+int plugin_enum_int_from_combo_index(const ConfigOptionDef &opt, int combo_index)
+{
+    return PluginManager::instance().enum_int_from_combo_index(opt, combo_index);
+}
+
+int plugin_enum_combo_index_from_int(const ConfigOptionDef &opt, int enum_int)
+{
+    return PluginManager::instance().enum_combo_index_from_int(opt, enum_int);
 }
 
 } // namespace Slic3r

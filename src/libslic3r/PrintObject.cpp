@@ -687,10 +687,10 @@ void PrintObject::estimate_curled_extrusions()
                                                  float(this->print()->default_object_config().inner_wall_acceleration.getFloat()),
                                                  this->config().raft_layers.getInt(), this->config().brim_type.value,
                                                  float(this->config().brim_width.getFloat())};
-            SupportSpotsGenerator::estimate_malformations(this->layers(), params);
+            SupportSpotsGenerator::estimate_malformations(this->layers(), params, [this]() { m_print->throw_if_canceled(); });
             m_print->throw_if_canceled();
         }
-        //this->set_done(posEstimateCurledExtrusions);
+        this->set_done(posEstimateCurledExtrusions);
     }
 }
 

@@ -1346,7 +1346,12 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
     }
 
     // Grab the lock for the Print / PrintObject milestones.
-	std::scoped_lock<std::mutex> lock(this->state_mutex());
+	std::unique_lock<PrintStateMutex> lock(this->state_mutex());
+	this->register_apply_state_lock(&lock);
+	struct ApplyStateLockGuard {
+		Print *print;
+		~ApplyStateLockGuard() { if (print) print->register_apply_state_lock(nullptr); }
+	} apply_state_lock_guard { this };
 
     // The following call may stop the background processing.
     if (! print_diff.empty())

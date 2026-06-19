@@ -13,6 +13,8 @@
 #include <wx/wfstream.h>
 #include <wx/zipstrm.h>
 
+#include <system_error>
+
 #include <miniz.h>
 
 // Print now includes tbb, and tbb includes Windows. This breaks compilation of wxWidgets if included before wx.
@@ -196,6 +198,8 @@ void BackgroundSlicingProcess::process_fff()
 {
     assert(m_print == m_fff_print);
     m_fff_print->is_BBL_printer() = wxGetApp().preset_bundle->is_bbl_vendor();
+	BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": slice phase enter, finished=" << m_print->finished()
+	                         << ", empty=" << m_print->empty();
 	//BBS: add the logic to process from an existed gcode file
 	if (m_print->finished()) {
 		BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: skip slicing, to process previous gcode file")%__LINE__;
@@ -226,7 +230,9 @@ void BackgroundSlicingProcess::process_fff()
 		m_gcode_result->reset();
 
 		BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: gcode_result reseted, will start print::process")%__LINE__;
+		BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": slice phase before Print::process";
 		m_print->process();
+		BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": slice phase after Print::process";
 		BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: after print::process, send slicing complete event to gui...")%__LINE__;
 
 		wxCommandEvent evt(m_event_slicing_completed_id);
@@ -237,7 +243,9 @@ void BackgroundSlicingProcess::process_fff()
 
 		//BBS: add plate index into render params
 		m_temp_output_path = this->get_current_plate()->get_tmp_gcode_path();
+		BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": slice phase before export_gcode";
 		m_fff_print->export_gcode(m_temp_output_path, m_gcode_result, [this](const ThumbnailsParams& params) { return this->render_thumbnails(params); });
+		BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": slice phase after export_gcode";
 		if(m_fff_print->is_BBL_printer())
 			run_post_process_scripts(m_temp_output_path, false, "File", m_temp_output_path, m_fff_print->full_print_config());
 
@@ -445,6 +453,13 @@ void BackgroundSlicingProcess::call_process(std::exception_ptr &ex) throw()
 		assert(m_print->canceled());
 		ex = std::current_exception();
 		BOOST_LOG_TRIVIAL(error) <<__FUNCTION__ << ":got cancelled exception" << std::endl;
+	} catch (const std::system_error &err) {
+		ex = std::current_exception();
+		BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":got std::system_error code=" << err.code().value()
+		                         << " (" << err.code().message() << ") what=" << err.what() << std::endl;
+	} catch (const std::exception &err) {
+		ex = std::current_exception();
+		BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":got std::exception what=" << err.what() << std::endl;
 	} catch (...) {
 		ex = std::current_exception();
 		BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":got other exception" << std::endl;
@@ -599,11 +614,19 @@ void BackgroundSlicingProcess::stop_internal()
 		// it throws the CanceledException().
 		m_print->cancel_internal();
 		// Allow the worker thread to wake up if blocking on a milestone.
-		m_print->state_mutex().unlock();
+		if (std::unique_lock<PrintStateMutex> *apply_lock = m_print->apply_state_lock())
+			apply_lock->unlock();
+		else {
+			BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": state_mutex not registered for cooperative unlock";
+		}
 		// Wait until the background processing stops by being canceled.
 		m_condition.wait(lck, [this](){ return m_state == STATE_CANCELED; });
 		// Lock it back to be in a consistent state.
-		m_print->state_mutex().lock();
+		if (std::unique_lock<PrintStateMutex> *apply_lock = m_print->apply_state_lock())
+			apply_lock->lock();
+		else {
+			BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": state_mutex not registered for cooperative relock";
+		}
 	}
 	// In the "Canceled" state. Reset the state to "Idle".
 	m_state = STATE_IDLE;
@@ -725,7 +748,12 @@ void BackgroundSlicingProcess::schedule_export(const std::string &path, bool exp
 		return;
 
 	// Guard against entering the export step before changing the export path.
-	std::scoped_lock<std::mutex> lock(m_print->state_mutex());
+	std::unique_lock<PrintStateMutex> lock(m_print->state_mutex());
+	m_print->register_apply_state_lock(&lock);
+	struct ApplyStateLockGuard {
+		PrintBase *print;
+		~ApplyStateLockGuard() { if (print) print->register_apply_state_lock(nullptr); }
+	} apply_state_lock_guard { m_print };
 	this->invalidate_step(bspsGCodeFinalize);
 	m_export_path = path;
 	m_export_path_on_removable_media = export_path_on_removable_media;
@@ -738,7 +766,12 @@ void BackgroundSlicingProcess::schedule_upload(Slic3r::PrintHostJob upload_job)
 		return;
 
 	// Guard against entering the export step before changing the export path.
-	std::scoped_lock<std::mutex> lock(m_print->state_mutex());
+	std::unique_lock<PrintStateMutex> lock(m_print->state_mutex());
+	m_print->register_apply_state_lock(&lock);
+	struct ApplyStateLockGuard {
+		PrintBase *print;
+		~ApplyStateLockGuard() { if (print) print->register_apply_state_lock(nullptr); }
+	} apply_state_lock_guard { m_print };
 	this->invalidate_step(bspsGCodeFinalize);
 	m_export_path.clear();
 	m_upload_job = std::move(upload_job);
@@ -751,7 +784,12 @@ void BackgroundSlicingProcess::reset_export()
 		m_export_path.clear();
 		m_export_path_on_removable_media = false;
 		// invalidate_step expects the mutex to be locked.
-		std::scoped_lock<std::mutex> lock(m_print->state_mutex());
+		std::unique_lock<PrintStateMutex> lock(m_print->state_mutex());
+		m_print->register_apply_state_lock(&lock);
+		struct ApplyStateLockGuard {
+			PrintBase *print;
+			~ApplyStateLockGuard() { if (print) print->register_apply_state_lock(nullptr); }
+		} apply_state_lock_guard { m_print };
 		this->invalidate_step(bspsGCodeFinalize);
 	}
 }

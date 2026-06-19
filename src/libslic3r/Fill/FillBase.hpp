@@ -150,6 +150,9 @@ public:
 
     static Fill* new_from_type(const InfillPattern type);
     static Fill* new_from_type(const std::string &type);
+    // Create a built-in fill directly, bypassing the plugin infill provider registry.
+    // Used by the default registry factories to avoid recursing back into the registry.
+    static Fill* new_from_type_builtin(const InfillPattern type);
     static bool  use_bridge_flow(const InfillPattern type);
 
     void         set_bounding_box(const Slic3r::BoundingBox &bbox) { bounding_box = bbox; }

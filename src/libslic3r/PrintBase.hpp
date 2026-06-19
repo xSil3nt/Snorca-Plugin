@@ -16,6 +16,10 @@
 
 namespace Slic3r {
 
+// Shared by Print / PrintObject milestone state and BackgroundSlicingProcess steps.
+// Recursive: apply(), invalidate(), and milestone queries may nest on one thread.
+using PrintStateMutex = std::recursive_mutex;
+
 enum StringExceptionType {
     STRING_EXCEPT_NOT_DEFINED                   = 0,
     STRING_EXCEPT_FILAMENT_NOT_MATCH_BED_TYPE   = 1,
@@ -110,23 +114,23 @@ class PrintState : public PrintStateBase
 public:
     PrintState() {}
 
-    StateWithTimeStamp state_with_timestamp(StepType step, std::mutex &mtx) const {
-        std::scoped_lock<std::mutex> lock(mtx);
+    StateWithTimeStamp state_with_timestamp(StepType step, PrintStateMutex &mtx) const {
+        std::scoped_lock<PrintStateMutex> lock(mtx);
         StateWithTimeStamp state = m_state[step];
         return state;
     }
 
-    StateWithWarnings state_with_warnings(StepType step, std::mutex &mtx) const {
-        std::scoped_lock<std::mutex> lock(mtx);
+    StateWithWarnings state_with_warnings(StepType step, PrintStateMutex &mtx) const {
+        std::scoped_lock<PrintStateMutex> lock(mtx);
         StateWithWarnings state = m_state[step];
         return state;
     }
 
-    bool is_started(StepType step, std::mutex &mtx) const {
+    bool is_started(StepType step, PrintStateMutex &mtx) const {
         return this->state_with_timestamp(step, mtx).state == STARTED;
     }
 
-    bool is_done(StepType step, std::mutex &mtx) const {
+    bool is_done(StepType step, PrintStateMutex &mtx) const {
         return this->state_with_timestamp(step, mtx).state == DONE;
     }
 
@@ -147,8 +151,8 @@ public:
     // This is necessary to block until the Print::apply() updates its state, which may
     // influence the processing step being entered.
     template<typename ThrowIfCanceled>
-    bool set_started(StepType step, std::mutex &mtx, ThrowIfCanceled throw_if_canceled) {
-        std::scoped_lock<std::mutex> lock(mtx);
+    bool set_started(StepType step, PrintStateMutex &mtx, ThrowIfCanceled throw_if_canceled) {
+        std::scoped_lock<PrintStateMutex> lock(mtx);
         // If canceled, throw before changing the step state.
         throw_if_canceled();
 #ifndef NDEBUG
@@ -180,8 +184,8 @@ public:
     // 		Timestamp when this stepentered the DONE state.
     // 		bool indicates whether the UI has to update the slicing warnings of this step or not.
 	template<typename ThrowIfCanceled>
-	std::pair<TimeStamp, bool> set_done(StepType step, std::mutex &mtx, ThrowIfCanceled throw_if_canceled) {
-        std::scoped_lock<std::mutex> lock(mtx);
+	std::pair<TimeStamp, bool> set_done(StepType step, PrintStateMutex &mtx, ThrowIfCanceled throw_if_canceled) {
+        std::scoped_lock<PrintStateMutex> lock(mtx);
         // If canceled, throw before changing the step state.
         throw_if_canceled();
         assert(m_state[step].state == STARTED);
@@ -292,9 +296,9 @@ public:
     // Return value:
     // 		Current milestone (StepType).
     // 		bool indicates whether the UI has to be updated or not.
-    std::pair<StepType, bool> active_step_add_warning(PrintStateBase::WarningLevel warning_level, const std::string &message, int message_id, std::mutex &mtx)
+    std::pair<StepType, bool> active_step_add_warning(PrintStateBase::WarningLevel warning_level, const std::string &message, int message_id, PrintStateMutex &mtx)
     {
-        std::scoped_lock<std::mutex> lock(mtx);
+        std::scoped_lock<PrintStateMutex> lock(mtx);
         assert(m_step_active != -1);
         StateWithWarnings &state = m_state[m_step_active];
         assert(state.state == STARTED);
@@ -340,7 +344,7 @@ protected:
     PrintObjectBase(ModelObject *model_object) : m_model_object(model_object) {}
     virtual ~PrintObjectBase() {}
     // Declared here to allow access from PrintBase through friendship.
-	static std::mutex&                  state_mutex(PrintBase *print);
+	static PrintStateMutex&             state_mutex(PrintBase *print);
 	static std::function<void()>        cancel_callback(PrintBase *print);
 	// Notify UI about a new warning of a milestone "step" on this PrintObjectBase.
 	// The UI will be notified by calling a status callback registered on print.
@@ -525,7 +529,11 @@ protected:
 	friend class PrintObjectBase;
     friend class BackgroundSlicingProcess;
 
-    std::mutex&            state_mutex() const { return m_state_mutex; }
+    PrintStateMutex&       state_mutex() const { return m_state_mutex; }
+    // Print::apply holds state_mutex through a unique_lock registered here so
+    // BackgroundSlicingProcess::stop_internal() can release/reacquire it safely.
+    void                   register_apply_state_lock(std::unique_lock<PrintStateMutex> *lock) { m_apply_state_lock = lock; }
+    std::unique_lock<PrintStateMutex> *apply_state_lock() const { return m_apply_state_lock; }
     std::function<void()>  cancel_callback() { return m_cancel_callback; }
 	void				   call_cancel_callback() { m_cancel_callback(); }
 	// Notify UI about a new warning of a milestone "step" on this PrintBase.
@@ -571,7 +579,8 @@ private:
     // Mutex used for synchronization of the worker thread with the UI thread:
     // The mutex will be used to guard the worker thread against entering a stage
     // while the data influencing the stage is modified.
-    mutable std::mutex                      m_state_mutex;
+    mutable PrintStateMutex                 m_state_mutex;
+    std::unique_lock<PrintStateMutex>      *m_apply_state_lock { nullptr };
 
     friend PrintTryCancel;
 };

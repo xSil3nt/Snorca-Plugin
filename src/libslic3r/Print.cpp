@@ -509,7 +509,12 @@ static std::vector<LocalZWipeTowerToolchange> collect_local_z_wipe_tower_toolcha
 
 void Print::clear()
 {
-	std::scoped_lock<std::mutex> lock(this->state_mutex());
+	std::unique_lock<PrintStateMutex> lock(this->state_mutex());
+	this->register_apply_state_lock(&lock);
+	struct ApplyStateLockGuard {
+		Print *print;
+		~ApplyStateLockGuard() { if (print) print->register_apply_state_lock(nullptr); }
+	} apply_state_lock_guard { this };
     // The following call should stop background processing if it is running.
     this->invalidate_all_steps();
 	for (PrintObject *object : m_objects)
@@ -861,7 +866,7 @@ bool Print::is_step_done(PrintObjectStep step) const
 {
     if (m_objects.empty())
         return false;
-    std::scoped_lock<std::mutex> lock(this->state_mutex());
+    std::scoped_lock<PrintStateMutex> lock(this->state_mutex());
     for (const PrintObject *object : m_objects)
         if (! object->is_step_done_unguarded(step))
             return false;
@@ -2349,6 +2354,7 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
 
     //compute the PrintObject with the same geometries
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": this=%1%, enter, use_cache=%2%, object size=%3%")%this%use_cache%m_objects.size();
+    BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": slice phase enter, objects=" << m_objects.size();
     if (m_objects.empty())
         return;
 
@@ -2458,6 +2464,7 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         PluginManager::instance().slicing_hooks().fire(SlicingHookPhase::BeforePrintStep, hook_ctx);
     }
     BOOST_LOG_TRIVIAL(info) << "Starting the slicing process." << log_memory_info();
+    BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": slice phase before make_perimeters";
     if (!use_cache) {
         for (PrintObject *obj : m_objects) {
             if (need_slicing_objects.count(obj) != 0) {
@@ -2470,6 +2477,7 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
                     obj->set_done(posPerimeters);
             }
         }
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": slice phase before estimate_curled_extrusions";
         for (PrintObject *obj : m_objects) {
             if (need_slicing_objects.count(obj) != 0) {
                 obj->estimate_curled_extrusions();
@@ -2479,6 +2487,7 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
                     obj->set_done(posEstimateCurledExtrusions);
             }
         }
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": slice phase before infill";
         for (PrintObject *obj : m_objects) {
             if (need_slicing_objects.count(obj) != 0) {
                 obj->infill();
@@ -3500,6 +3509,12 @@ void Print::set_gcode_file_ready()
 //BBS: add gcode file preload logic
 void Print::set_gcode_file_invalidated()
 {
+    std::unique_lock<PrintStateMutex> lock(this->state_mutex());
+    this->register_apply_state_lock(&lock);
+    struct ApplyStateLockGuard {
+        Print *print;
+        ~ApplyStateLockGuard() { if (print) print->register_apply_state_lock(nullptr); }
+    } apply_state_lock_guard { this };
     this->invalidate_step(psGCodeExport);
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ <<  boost::format(": done");
 }

@@ -11892,10 +11892,21 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
     // If the update_background_process() was not called by the timer, kill the timer,
     // so the update_restart_background_process() will not be called again in vain.
     background_process_timer.Stop();
+
+    // Print::apply() may invalidate milestones and call stop_internal(), which temporarily
+    // unlocks state_mutex. That is only safe when the worker is blocked waiting for the
+    // lock, not while it is inside set_started()/set_done(). Defer all apply work until
+    // the background slice thread is idle.
+    if (this->background_process.running()) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": deferring update while background slicing is active";
+        this->schedule_background_process();
+        return return_state;
+    }
+
     // Update the "out of print bed" state of ModelInstances.
     update_print_volume_state();
     // Apply new config to the possibly running background task.
-    bool               was_running = background_process.running();
+    bool               was_running = false;
     //BBS: add the switch print logic before Print::Apply
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": enter, force_validation=%1% postpone_error_messages=%2%, switch_print=%3%, was_running=%4%")%force_validation %postpone_error_messages %switch_print %was_running;
     if (switch_print)

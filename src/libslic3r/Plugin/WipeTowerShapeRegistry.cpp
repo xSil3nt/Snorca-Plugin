@@ -42,35 +42,6 @@ public:
     }
 };
 
-class BuiltinRoundShape : public IWipeTowerShape
-{
-public:
-    std::string key() const override { return "round"; }
-    bool includes_extruded_perimeter() const override { return false; }
-
-    Polygon generate_wall(const WipeTowerWallContext &ctx) override
-    {
-        if (ctx.wt_box == nullptr)
-            return {};
-
-        const Vec2f center = (ctx.wt_box->ld + ctx.wt_box->ru) / 2.f;
-        const float width  = ctx.wt_box->ru.x() - ctx.wt_box->ld.x();
-        const float height = ctx.wt_box->ru.y() - ctx.wt_box->ld.y();
-        const float radius = 0.5f * std::min(width, height);
-
-        Polygon circle;
-        constexpr int segments = 48;
-        circle.points.reserve(segments);
-        for (int i = 0; i < segments; ++i) {
-            const float angle = float(2.0 * M_PI * i / segments);
-            circle.points.emplace_back(
-                coord_t(scale_(center.x() + radius * std::cos(angle))),
-                coord_t(scale_(center.y() + radius * std::sin(angle))));
-        }
-        return circle;
-    }
-};
-
 } // namespace
 
 WipeTowerShapeRegistry &wipe_tower_shape_registry()
@@ -84,7 +55,6 @@ void register_builtin_wipe_tower_shapes()
     registry.register_provider("rectangle", []() { return std::make_unique<BuiltinRectangleShape>(); });
     registry.register_provider("cone", []() { return std::make_unique<BuiltinConeShape>(); });
     registry.register_provider("rib", []() { return std::make_unique<BuiltinRibShape>(); });
-    registry.register_provider("round", []() { return std::make_unique<BuiltinRoundShape>(); });
 }
 
 std::string wipe_tower_wall_type_key(int wall_type_int)

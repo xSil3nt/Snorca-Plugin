@@ -2563,8 +2563,12 @@ void TabPrint::build()
         optgroup->append_single_option_line("wipe_tower_max_purge_speed", "multimaterial_settings_prime_tower#maximum-wipe-tower-print-speed");
         optgroup->append_single_option_line("wipe_tower_wall_type", "multimaterial_settings_prime_tower#wall-type");
         for (const GUIOptionContribution &plugin_line : GUIContributionRegistry::instance().option_lines()) {
-            if (plugin_line.optgroup_key == "multimaterial_settings_prime_tower")
-                optgroup->append_single_option_line(plugin_line.option_key, plugin_line.doc_path);
+            if (plugin_line.optgroup_key != "multimaterial_settings_prime_tower")
+                continue;
+            // Built-in tabs already declare core options; plugins extend enums or add new keys only.
+            if (plugin_line.option_key == "wipe_tower_wall_type")
+                continue;
+            optgroup->append_single_option_line(plugin_line.option_key, plugin_line.doc_path);
         }
         optgroup->append_single_option_line("wipe_tower_cone_angle", "multimaterial_settings_prime_tower#stabilization-cone-apex-angle");
         optgroup->append_single_option_line("wipe_tower_extra_rib_length", "multimaterial_settings_prime_tower#extra-rib-length");

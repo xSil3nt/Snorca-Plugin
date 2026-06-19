@@ -138,7 +138,7 @@ float estimate_curled_up_height(
     return curled_up_height;
 }
 
-void estimate_malformations(LayerPtrs &layers, const Params &params)
+void estimate_malformations(LayerPtrs &layers, const Params &params, const std::function<void()> &throw_if_canceled)
 {
 #ifdef DEBUG_FILES
     FILE *debug_file = boost::nowide::fopen(debug_out_path("object_malformations.obj").c_str(), "w");
@@ -148,6 +148,8 @@ void estimate_malformations(LayerPtrs &layers, const Params &params)
     LD prev_layer_lines{};
 
     for (Layer *l : layers) {
+        if (throw_if_canceled)
+            throw_if_canceled();
         l->curled_lines.clear();
         std::vector<Linef> boundary_lines = l->lower_layer != nullptr ? to_unscaled_linesf(l->lower_layer->lslices) : std::vector<Linef>();
         AABBTreeLines::LinesDistancer<Linef> prev_layer_boundary{std::move(boundary_lines)};

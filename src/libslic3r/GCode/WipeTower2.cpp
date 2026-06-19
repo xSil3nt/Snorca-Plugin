@@ -2196,6 +2196,92 @@ void WipeTower2::toolchange_Wipe(WipeTowerWriter2& writer, const WipeTower::box_
     writer.change_analyzer_line_width(m_perimeter_width);
 }
 
+namespace {
+
+static constexpr float WT_INNER_EPSILON = 1e-3f;
+
+bool circle_chord_at_x(float x, float cx, float cy, float radius, float y_min, float y_max, float min_len, float &y_low, float &y_high)
+{
+    const float dx = x - cx;
+    if (dx * dx > radius * radius)
+        return false;
+    const float half = std::sqrt(std::max(0.f, radius * radius - dx * dx));
+    y_low  = std::max(y_min, cy - half);
+    y_high = std::min(y_max, cy + half);
+    return y_high - y_low > min_len;
+}
+
+bool circle_chord_at_y(float y, float cx, float cy, float radius, float x_min, float x_max, float min_len, float &x_low, float &x_high)
+{
+    const float dy = y - cy;
+    if (dy * dy > radius * radius)
+        return false;
+    const float half = std::sqrt(std::max(0.f, radius * radius - dy * dy));
+    x_low  = std::max(x_min, cx - half);
+    x_high = std::min(x_max, cx + half);
+    return x_high - x_low > min_len;
+}
+
+void generate_circular_wipe_tower_infill(WipeTowerWriter2 &writer,
+                                         const Vec2f &center,
+                                         float radius,
+                                         const WipeTower::box_coordinates &fill_box,
+                                         float feedrate,
+                                         float bridging,
+                                         float perimeter_width,
+                                         bool solid_infill,
+                                         bool first_layer)
+{
+    const float cx = center.x();
+    const float cy = center.y();
+    const float dy = fill_box.lu.y() - fill_box.ld.y() - perimeter_width;
+    float       left  = fill_box.lu.x() + 2 * perimeter_width;
+    float       right = fill_box.ru.x() - 2 * perimeter_width;
+    float       r     = radius;
+    if (solid_infill && first_layer)
+        r = std::min(r + perimeter_width, 0.5f * std::min(fill_box.ru.x() - fill_box.ld.x(), fill_box.lu.y() - fill_box.ld.y()));
+
+    const float min_len = perimeter_width - WT_INNER_EPSILON;
+
+    if (solid_infill) {
+        float sparse_factor = 1.5f;
+        if (first_layer)
+            sparse_factor = 1.f;
+        float y       = fill_box.ld.y() + perimeter_width;
+        int   n       = std::max(1, int(dy / (perimeter_width * sparse_factor)));
+        float spacing = n > 1 ? (dy - perimeter_width) / (n - 1) : 0.f;
+        for (int i = 0; i < n; ++i) {
+            float x_low = 0.f;
+            float x_high = 0.f;
+            if (circle_chord_at_y(y, cx, cy, r, fill_box.ld.x(), fill_box.ru.x(), min_len, x_low, x_high))
+                writer.extrude(x_low, y, feedrate).extrude(x_high, y);
+            if (n > 1)
+                y += spacing;
+        }
+        float x_low = 0.f;
+        float x_high = 0.f;
+        if (circle_chord_at_y(fill_box.lu.y(), cx, cy, r, fill_box.ld.x(), fill_box.ru.x(), min_len, x_low, x_high))
+            writer.extrude(writer.x(), fill_box.lu.y()).extrude(x_high, fill_box.lu.y());
+    } else {
+        float y_low = 0.f;
+        float y_high = 0.f;
+        if (circle_chord_at_x(left, cx, cy, r, fill_box.ld.y(), fill_box.lu.y(), min_len, y_low, y_high))
+            writer.extrude(Vec2f(left, y_high + perimeter_width * 2.f), feedrate);
+
+        const int   n  = 1 + int((right - left) / bridging);
+        const float dx = (right - left) / n;
+        for (int i = 1; i <= n; ++i) {
+            const float x = left + dx * i;
+            if (!circle_chord_at_x(x, cx, cy, r, fill_box.ld.y(), fill_box.lu.y(), min_len, y_low, y_high))
+                continue;
+            writer.travel(x, writer.y());
+            writer.extrude(x, i % 2 ? y_low : y_high);
+        }
+    }
+}
+
+} // namespace
+
 WipeTower::ToolChangeResult WipeTower2::finish_layer()
 {
     assert(!this->layer_finished());
@@ -2226,8 +2312,20 @@ WipeTower::ToolChangeResult WipeTower2::finish_layer()
 
     bool toolchanges_on_layer = m_layer_info->toolchanges_depth() > WT_EPSILON;
 
+    const std::string wall_shape_key = wipe_tower_wall_type_key(m_wall_type);
+    WipeTower::box_coordinates wt_box_shape(Vec2f(0.f, 0.f), m_wipe_tower_width, m_layer_info->depth + m_perimeter_width);
+    WipeTowerWallContext shape_ctx;
+    shape_ctx.tower           = this;
+    shape_ctx.wt_box          = &wt_box_shape;
+    shape_ctx.perimeter_width = m_perimeter_width;
+    Vec2f  infill_center;
+    float  infill_radius = 0.f;
+    bool   circular_infill = false;
+    if (auto shape = wipe_tower_shape_registry().create(wall_shape_key))
+        circular_infill = shape->get_infill_circle(shape_ctx, infill_center, infill_radius);
+
     // inner perimeter of the sparse section, if there is space for it:
-    if (fill_box.ru.y() - fill_box.rd.y() > m_perimeter_width - WT_EPSILON)
+    if (!circular_infill && fill_box.ru.y() - fill_box.rd.y() > m_perimeter_width - WT_EPSILON)
         writer.rectangle(fill_box.ld, fill_box.rd.x() - fill_box.ld.x(), fill_box.ru.y() - fill_box.rd.y(), feedrate);
 
     // we are in one of the corners, travel to ld along the perimeter:
@@ -2258,6 +2356,10 @@ WipeTower::ToolChangeResult WipeTower2::finish_layer()
                 right += m_perimeter_width;
                 sparse_factor = 1.f;
             }
+            if (circular_infill) {
+                generate_circular_wipe_tower_infill(writer, infill_center, infill_radius, fill_box, feedrate, m_bridging,
+                                                    m_perimeter_width, true, first_layer);
+            } else {
             float y       = fill_box.ld.y() + m_perimeter_width;
             int   n       = dy / (m_perimeter_width * sparse_factor);
             float spacing = (dy - m_perimeter_width) / (n - 1);
@@ -2267,6 +2369,10 @@ WipeTower::ToolChangeResult WipeTower2::finish_layer()
                 y = y + spacing;
             }
             writer.extrude(writer.x(), fill_box.lu.y());
+            }
+        } else if (circular_infill) {
+            generate_circular_wipe_tower_infill(writer, infill_center, infill_radius, fill_box, feedrate, m_bridging,
+                                                m_perimeter_width, false, first_layer);
         } else {
             // Extrude an inverse U at the left of the region and the sparse infill.
             writer.extrude(fill_box.lu + Vec2f(m_perimeter_width * 2, 0.f), feedrate);
@@ -2288,15 +2394,15 @@ WipeTower::ToolChangeResult WipeTower2::finish_layer()
     feedrate = first_layer ? m_first_layer_speed * 60.f : std::min(m_wipe_tower_max_purge_speed * 60.f, m_perimeter_speed * 60.f);
 
     Polygon poly;
-    const std::string wall_shape_key = wipe_tower_wall_type_key(m_wall_type);
     if (auto shape = wipe_tower_shape_registry().create(wall_shape_key)) {
         WipeTowerWallContext ctx;
-        ctx.tower       = this;
-        ctx.writer      = &writer;
-        ctx.feedrate    = feedrate;
-        ctx.first_layer = first_layer;
-        ctx.spacing     = spacing;
-        ctx.skip_points = get_wall_skip_points(m_layer_info - m_plan.begin());
+        ctx.tower           = this;
+        ctx.writer          = &writer;
+        ctx.feedrate        = feedrate;
+        ctx.first_layer     = first_layer;
+        ctx.spacing         = spacing;
+        ctx.perimeter_width = m_perimeter_width;
+        ctx.skip_points     = get_wall_skip_points(m_layer_info - m_plan.begin());
         WipeTower::box_coordinates wt_box_cone(
             Vec2f(0.f, (m_current_shape == SHAPE_REVERSED ? m_layer_info->toolchanges_depth() : 0.f)),
             m_wipe_tower_width, m_layer_info->depth + m_perimeter_width);

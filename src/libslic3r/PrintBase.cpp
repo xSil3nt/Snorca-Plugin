@@ -136,7 +136,7 @@ void PrintBase::status_update_warnings(int step, PrintStateBase::WarningLevel wa
 }
 
 
-std::mutex& PrintObjectBase::state_mutex(PrintBase *print)
+PrintStateMutex& PrintObjectBase::state_mutex(PrintBase *print)
 {
 	return print->state_mutex();
 }

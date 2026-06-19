@@ -7,6 +7,7 @@
 #include "PrintConfig.hpp"
 #include <boost/log/trivial.hpp>
 #include <cstddef>
+#include <functional>
 #include <vector>
 
 
@@ -80,7 +81,7 @@ struct Params
     }
 };
 
-void estimate_malformations(std::vector<Layer *> &layers, const Params &params);
+void estimate_malformations(std::vector<Layer *> &layers, const Params &params, const std::function<void()> &throw_if_canceled = {});
 
 
 enum class SupportPointCause { 

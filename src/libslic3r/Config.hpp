@@ -1606,10 +1606,15 @@ public:
 class ConfigOptionEnumGeneric : public ConfigOptionInt
 {
 public:
-    ConfigOptionEnumGeneric(const t_config_enum_values* keys_map = nullptr) : keys_map(keys_map) {}
-    explicit ConfigOptionEnumGeneric(const t_config_enum_values* keys_map, int value) : ConfigOptionInt(value), keys_map(keys_map) {}
+    ConfigOptionEnumGeneric(const t_config_enum_values *keys_map = nullptr, const std::string &opt_key = {})
+        : ConfigOptionInt(0), keys_map(keys_map), opt_key(opt_key)
+    {}
+    explicit ConfigOptionEnumGeneric(const t_config_enum_values *keys_map, int value, const std::string &opt_key = {})
+        : ConfigOptionInt(value), keys_map(keys_map), opt_key(opt_key)
+    {}
 
-    const t_config_enum_values* keys_map;
+    const t_config_enum_values *keys_map;
+    std::string                 opt_key;
 
     static ConfigOptionType     static_type() { return coEnum; }
     ConfigOptionType            type()  const override { return static_type(); }
@@ -1633,23 +1638,8 @@ public:
         this->value = rhs->getInt();
     }
 
-    std::string serialize() const override
-    {
-        for (const auto &kvp : *this->keys_map)
-            if (kvp.second == this->value)
-                return kvp.first;
-        return std::string();
-    }
-
-    bool deserialize(const std::string &str, bool append = false) override
-    {
-        UNUSED(append);
-        auto it = this->keys_map->find(str);
-        if (it == this->keys_map->end())
-            return false;
-        this->value = it->second;
-        return true;
-    }
+    std::string serialize() const override;
+    bool        deserialize(const std::string &str, bool append = false) override;
 
 private:
 	friend class cereal::access;

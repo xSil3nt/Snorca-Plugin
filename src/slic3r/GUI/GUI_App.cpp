@@ -895,7 +895,14 @@ void GUI_App::log_version_info()
     BOOST_LOG_TRIVIAL(warning) << "========================================";
 
     BOOST_LOG_TRIVIAL(warning) << "[Version] Snapmaker Orca: " << Snapmaker_VERSION
-                               << ", Build: " << SLIC3R_VERSION;
+                               << ", Build: " << SLIC3R_VERSION
+                               << ", DevTag: " << __DATE__ << " " << __TIME__;
+
+#ifdef _WIN32
+    wchar_t app_path[MAX_PATH] = { 0 };
+    ::GetModuleFileNameW(nullptr, app_path, MAX_PATH);
+    BOOST_LOG_TRIVIAL(warning) << "[Version] Binary: " << boost::nowide::narrow(app_path);
+#endif
 
     std::string flutter_ver = common::get_flutter_version();
     BOOST_LOG_TRIVIAL(warning) << "[Version] Orca Web: " << (flutter_ver.empty() ? "N/A" : flutter_ver);

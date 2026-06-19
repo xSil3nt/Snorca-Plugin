@@ -1,6 +1,7 @@
 #include "GUIContributionRegistry.hpp"
 
 #include "libslic3r/Plugin/PluginManager.hpp"
+#include "libslic3r/Plugin/WipeTowerShapeRegistry.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
 namespace Slic3r {
@@ -26,7 +27,7 @@ void sync_plugin_gui_contributions_from_manager()
                 if (!config->has("wipe_tower_wall_type"))
                     return false;
                 const ConfigOption *opt = config->option("wipe_tower_wall_type");
-                return opt && opt->serialize() == rule.depends_on_value;
+                return opt && wipe_tower_wall_type_key(opt->getInt()) == rule.depends_on_value;
             }});
         }
     }

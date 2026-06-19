@@ -22,6 +22,7 @@ struct WipeTowerWallContext
     double                            feedrate{0.0};
     bool                              first_layer{false};
     float                             spacing{0.f};
+    float                             perimeter_width{0.f};
     std::vector<Vec2f>                skip_points;
     bool                              infill_cone{false};
 };
@@ -35,6 +36,14 @@ public:
     virtual void plan_tower_prep(WipeTower2 &tower) { (void) tower; }
     // Built-in shapes extrude inside generate_wall(); plugin shapes return geometry only.
     virtual bool includes_extruded_perimeter() const { return true; }
+    // When true, sparse/priming infill is clipped to a circle instead of the rectangular fill box.
+    virtual bool get_infill_circle(const WipeTowerWallContext &ctx, Vec2f &center, float &radius) const
+    {
+        (void) ctx;
+        (void) center;
+        (void) radius;
+        return false;
+    }
     virtual Polygon generate_wall(const WipeTowerWallContext &ctx) = 0;
 };
 

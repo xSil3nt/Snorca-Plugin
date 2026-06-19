@@ -285,7 +285,7 @@ ConfigOption* ConfigOptionDef::create_empty_option() const
 	//    case coPoint3s:         return new ConfigOptionPoint3s();
 	    case coBool:            return new ConfigOptionBool();
 	    case coBools:           return new ConfigOptionBools();
-	    case coEnum:            return new ConfigOptionEnumGeneric(this->enum_keys_map);
+	    case coEnum:            return new ConfigOptionEnumGeneric(this->enum_keys_map, this->opt_key);
         // BBS
         case coEnums:           return new ConfigOptionEnumsGeneric(this->enum_keys_map);
 	    default:                throw ConfigurationError(std::string("Unknown option type for option ") + this->label);
@@ -298,7 +298,7 @@ ConfigOption* ConfigOptionDef::create_default_option() const
     if (this->default_value) {
         ConfigOptionType type = this->default_value->type();
         if (type == coEnum)
-            return new ConfigOptionEnumGeneric(this->enum_keys_map, this->default_value->getInt());
+            return new ConfigOptionEnumGeneric(this->enum_keys_map, this->default_value->getInt(), this->opt_key);
 
         if (type == coEnums) {
             auto dft = this->default_value->clone();
@@ -1868,6 +1868,43 @@ CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionPoint3)
 CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionBool)
 CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionBools)
 CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionBoolsNullable)
+namespace Slic3r {
+
+std::string ConfigOptionEnumGeneric::serialize() const
+{
+    if (this->keys_map) {
+        for (const auto &kvp : *this->keys_map)
+            if (kvp.second == this->value)
+                return kvp.first;
+    }
+    if (!this->opt_key.empty()) {
+        const ConfigOptionDef *optdef = print_config_def.get(this->opt_key);
+        if (optdef)
+            return plugin_serialize_extended_enum(*optdef, this->value);
+    }
+    return std::string();
+}
+
+bool ConfigOptionEnumGeneric::deserialize(const std::string &str, bool append)
+{
+    UNUSED(append);
+    if (this->keys_map) {
+        auto it = this->keys_map->find(str);
+        if (it != this->keys_map->end()) {
+            this->value = it->second;
+            return true;
+        }
+    }
+    if (!this->opt_key.empty()) {
+        const ConfigOptionDef *optdef = print_config_def.get(this->opt_key);
+        if (optdef)
+            return plugin_deserialize_extended_enum(this, optdef, str);
+    }
+    return false;
+}
+
+} // namespace Slic3r
+
 CEREAL_REGISTER_TYPE(Slic3r::ConfigOptionEnumGeneric)
 CEREAL_REGISTER_TYPE(Slic3r::ConfigBase)
 CEREAL_REGISTER_TYPE(Slic3r::DynamicConfig)

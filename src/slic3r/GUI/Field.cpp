@@ -9,6 +9,7 @@
 #include "format.hpp"
 
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Plugin/PluginIntegration.hpp"
 
 #include <regex>
 #include <wx/numformatter.h>
@@ -1581,7 +1582,7 @@ void Choice::set_value(const boost::any& value, bool change_event)
             else
                 val = -1;
         }
-		field->SetSelection(val);
+		field->SetSelection(plugin_enum_combo_index_from_int(m_opt, val));
 		break;
 	}
 	default:
@@ -1664,7 +1665,7 @@ boost::any& Choice::get_value()
             m_value = field->GetSelection() + 1;
         }
         else
-            m_value = field->GetSelection();
+            m_value = plugin_enum_int_from_combo_index(m_opt, field->GetSelection());
     }
     else if (m_opt.gui_type == ConfigOptionDef::GUIType::f_enum_open || m_opt.gui_type == ConfigOptionDef::GUIType::i_enum_open) {
         const int ret_enum = field->GetSelection();
