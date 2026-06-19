@@ -8348,6 +8348,12 @@ CLIMiscConfigDef::CLIMiscConfigDef()
     def->label = L("Data directory");
     def->tooltip = L("Load and store settings at the given directory. This is useful for maintaining different profiles or including configurations from a network storage.");
 
+    def = this->add("load_plugin", coStrings);
+    def->label = L("Load Orca plugin");
+    def->tooltip = L("Load a native Orca plugin from an unpacked directory or .orcaplugin package. May be specified multiple times.");
+    def->cli_params = "\"path/to/plugin\"";
+    def->set_default_value(new ConfigOptionStrings());
+
 
     def = this->add("outputdir", coString);
     def->label = L("Output directory");

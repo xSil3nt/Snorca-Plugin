@@ -1,4 +1,5 @@
 #include "Config.hpp"
+#include "Plugin/PluginManager.hpp"
 #include "format.hpp"
 #include "Utils.hpp"
 #include "LocalesUtils.hpp"
@@ -629,6 +630,9 @@ bool ConfigBase::set_deserialize_raw(const t_config_option_key &opt_key_src, con
     } else {
 		//bool test = (opt_key == "filament_end_gcode");
 		success = opt->deserialize(value, append);
+	    if (! success && optdef->type == coEnum) {
+            success = PluginManager::instance().deserialize_extended_enum(opt, optdef, value);
+        }
 	    if (! success && substitutions_ctxt.rule != ForwardCompatibilitySubstitutionRule::Disable &&
 	        // Only allow substitutions of an enum value by another enum value or a boolean value with an enum value.
 	        // That means, we expect enum values being added in the future and possibly booleans being converted to enums.
@@ -853,8 +857,9 @@ int ConfigBase::load_from_json(const std::string &file, ConfigSubstitutionContex
                 std::string value_str;
 
                 if (it.value().is_string()) {
-                    //bool test1 = (it.key() == std::string("end_gcode"));
-                    this->set_deserialize(opt_key, it.value(), substitution_context);
+                    if (!this->set_deserialize_nothrow(opt_key, it.value(), substitution_context)) {
+                        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": skipped unknown option " << opt_key << " in " << file;
+                    }
                     //some logic for special values
                     if (opt_key == "support_type") {
                         //std::string new_value = dynamic_cast<ConfigOptionString*>(this->option(opt_key))->value;
@@ -952,7 +957,7 @@ int ConfigBase::load_from_json(const std::string &file, ConfigSubstitutionContex
                         }
                     }
                     if (valid)
-                        this->set_deserialize(opt_key, value_str, substitution_context);
+                        this->set_deserialize_nothrow(opt_key, value_str, substitution_context);
                 }
                 else {
                     //should not happen

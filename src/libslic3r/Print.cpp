@@ -17,6 +17,8 @@
 #include "GCode/WipeTower2.hpp"
 #include "Utils.hpp"
 #include "PrintConfig.hpp"
+#include "Plugin/PluginManager.hpp"
+#include "Plugin/SlicingHookBus.hpp"
 #include "FilamentHotBedNozzleRules.hpp"
 #include "Model.hpp"
 #include "format.hpp"
@@ -825,6 +827,8 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             // Continue with the other opt_keys to possibly invalidate any object specific steps.
         }
     }
+
+    PluginManager::instance().config_schema().merge_invalidation(opt_keys, steps, osteps);
 
     sort_remove_duplicates(steps);
     for (PrintStep step : steps)
@@ -2446,6 +2450,13 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
     }
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": total object counts %1% in current print, need to slice %2%")%m_objects.size()%need_slicing_objects.size();
+    {
+        SlicingHookContext hook_ctx;
+        hook_ctx.print   = this;
+        hook_ctx.config  = &m_config;
+        hook_ctx.print_step = psCount;
+        PluginManager::instance().slicing_hooks().fire(SlicingHookPhase::BeforePrintStep, hook_ctx);
+    }
     BOOST_LOG_TRIVIAL(info) << "Starting the slicing process." << log_memory_info();
     if (!use_cache) {
         for (PrintObject *obj : m_objects) {

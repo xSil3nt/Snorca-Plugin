@@ -13,6 +13,7 @@
 #include "../VariableWidth.hpp"
 
 #include "FillBase.hpp"
+#include "Plugin/InfillProviderRegistryImpl.hpp"
 #include "FillConcentric.hpp"
 #include "FillHoneycomb.hpp"
 #include "Fill3DHoneycomb.hpp"
@@ -36,7 +37,7 @@ float Fill::infill_anchor = 400;
 //BBS: 20mm
 float Fill::infill_anchor_max = 20;
 
-Fill* Fill::new_from_type(const InfillPattern type)
+static Fill *fill_new_from_type_builtin(const InfillPattern type)
 {
     switch (type) {
     case ipConcentric:          return new FillConcentric();
@@ -76,8 +77,17 @@ Fill* Fill::new_from_type(const InfillPattern type)
     }
 }
 
+Fill* Fill::new_from_type(const InfillPattern type)
+{
+    if (Fill *fill = create_infill_from_type(type))
+        return fill;
+    return fill_new_from_type_builtin(type);
+}
+
 Fill* Fill::new_from_type(const std::string &type)
 {
+    if (Fill *fill = create_infill_from_key(type))
+        return fill;
     const t_config_enum_values &enum_keys_map = ConfigOptionEnum<InfillPattern>::get_enum_values();
     t_config_enum_values::const_iterator it = enum_keys_map.find(type);
     return (it == enum_keys_map.end()) ? nullptr : new_from_type(InfillPattern(it->second));

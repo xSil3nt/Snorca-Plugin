@@ -1094,6 +1094,12 @@ static std::vector<std::string> s_Preset_sla_printer_options {
 };
 
 const std::vector<std::string>& Preset::print_options()          { return s_Preset_print_options; }
+
+void Preset::register_print_option(const std::string &opt_key)
+{
+    if (std::find(s_Preset_print_options.begin(), s_Preset_print_options.end(), opt_key) == s_Preset_print_options.end())
+        s_Preset_print_options.push_back(opt_key);
+}
 const std::vector<std::string>& Preset::filament_options()       { return s_Preset_filament_options; }
 const std::vector<std::string>& Preset::machine_limits_options() { return s_Preset_machine_limits_options; }
 // The following nozzle options of a printer profile will be adjusted to match the size

@@ -1,5 +1,7 @@
 #include "PostProcessor.hpp"
 
+#include "libslic3r/Plugin/PluginManager.hpp"
+#include "libslic3r/Plugin/SlicingHookBus.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/format.hpp"
 #include "libslic3r/I18N.hpp"
@@ -373,6 +375,12 @@ bool run_post_process_scripts(std::string &src_path, bool make_copy, const std::
     }
 
     src_path = std::move(path);
+
+    SlicingHookContext hook_ctx;
+    hook_ctx.config     = &config;
+    hook_ctx.gcode_path = src_path;
+    PluginManager::instance().slicing_hooks().fire(SlicingHookPhase::AfterGCodeExport, hook_ctx);
+
     return true;
 }
 

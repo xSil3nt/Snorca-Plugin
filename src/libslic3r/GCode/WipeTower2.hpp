@@ -171,6 +171,27 @@ public:
 
     const std::map<float, Polylines>& get_outer_wall() const { return m_outer_wall; }
 
+    void plan_tower_for_rib_shape();
+    Polygon generate_support_rib_wall(WipeTowerWriter2&                 writer,
+                                      const WipeTower::box_coordinates& wt_box,
+                                      double                            feedrate,
+                                      bool                              first_layer,
+                                      bool                              rib_wall,
+                                      bool                              extrude_perimeter,
+                                      const std::vector<Vec2f>&         skip_points);
+    Polygon generate_support_cone_wall(
+        WipeTowerWriter2& writer,
+        const WipeTower::box_coordinates& wt_box,
+        double feedrate,
+        bool infill_cone,
+        float spacing,
+        const std::vector<Vec2f>& skip_points);
+    Polygon extrude_perimeter_polygon(WipeTowerWriter2& writer,
+                                      const Polygon& wall_polygon,
+                                      double feedrate,
+                                      const std::vector<Vec2f>& skip_points,
+                                      bool extrude_perimeter = true);
+
 private:
     struct WipeTowerInfo;
 
@@ -357,28 +378,12 @@ private:
 		const WipeTower::box_coordinates  &cleaning_box,
 		float wipe_volume);
 
-    Polygon generate_support_rib_wall(WipeTowerWriter2&                 writer,
-                                      const WipeTower::box_coordinates& wt_box,
-                                      double                 feedrate,
-                                      bool                   first_layer,
-                                      bool                   rib_wall,
-                                      bool                   extrude_perimeter,
-                                      const std::vector<Vec2f>&         skip_points);
-
     void get_all_wall_skip_points();
     // Retrieve pre-computed gap points for a specific layer. Returns empty if layer_id out of bounds.
     std::vector<Vec2f> get_wall_skip_points(size_t layer_id);
     // Predict nozzle X after toolchange_Unload ramming, matching its xl/xr and do_ramming logic.
     // old_tool: extruder index of the filament being unloaded
     float predict_ramming_end_x(int old_tool, float layer_height) const;
-
-    Polygon generate_support_cone_wall(
-        WipeTowerWriter2& writer, 
-		const WipeTower::box_coordinates& wt_box, 
-		double feedrate, 
-		bool infill_cone, 
-		float spacing,
-		const std::vector<Vec2f>& skip_points = {});
 
     Polygon generate_rib_polygon(const WipeTower::box_coordinates& wt_box);
 

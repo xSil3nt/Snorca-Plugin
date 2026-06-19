@@ -346,6 +346,7 @@ public:
     }
 
     static const std::vector<std::string>&  print_options();
+    static void register_print_option(const std::string &opt_key);
     static const std::vector<std::string>&  filament_options();
     // Printer options contain the nozzle options.
     static const std::vector<std::string>&  printer_options();

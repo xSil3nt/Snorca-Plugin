@@ -326,6 +326,32 @@ set(lisbslic3r_sources
     PerimeterGenerator.hpp
     PlaceholderParser.cpp
     PlaceholderParser.hpp
+    Plugin/AlgorithmProviderRegistry.hpp
+    Plugin/ConfigSchemaRegistry.cpp
+    Plugin/ConfigSchemaRegistry.hpp
+    Plugin/InfillProviderRegistry.hpp
+    Plugin/InfillProviderRegistryImpl.cpp
+    Plugin/InfillProviderRegistryImpl.hpp
+    Plugin/IWallGenerator.hpp
+    Plugin/IWipeTowerShape.hpp
+    Plugin/PluginABI.hpp
+    Plugin/PluginContext.hpp
+    Plugin/PluginGUISupport.cpp
+    Plugin/PluginGUISupport.hpp
+    Plugin/PluginLoader.cpp
+    Plugin/PluginLoader.hpp
+    Plugin/PluginManager.cpp
+    Plugin/PluginManager.hpp
+    Plugin/PluginManifest.cpp
+    Plugin/PluginManifest.hpp
+    Plugin/SharedLibrary.cpp
+    Plugin/SharedLibrary.hpp
+    Plugin/SlicingHookBus.cpp
+    Plugin/SlicingHookBus.hpp
+    Plugin/WallGeneratorRegistry.cpp
+    Plugin/WallGeneratorRegistry.hpp
+    Plugin/WipeTowerShapeRegistry.cpp
+    Plugin/WipeTowerShapeRegistry.hpp
     Platform.cpp
     Platform.hpp
     PNGReadWrite.cpp
