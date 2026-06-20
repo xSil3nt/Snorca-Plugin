@@ -60,10 +60,11 @@ reg.def.type    = PluginCoBool;
 reg.preset_type = PluginPresetType::Print;
 ctx.config_schema().register_option(reg);
 
-ctx.gui_support().register_option_line({"plugin_settings", "my_option", "plugin_settings"});
+ctx.gui_support().register_option_line(
+    {"quality_settings_overhangs", "my_option", "quality_settings_overhangs#my-option"});
 ```
 
-Registered options merge into `print_config_def`, persist in presets, and appear in the Process tab automatically (matched optgroup or fallback **Plugin settings** page).
+Use an existing `optgroup_key` from `Tab.cpp` (the doc-path prefix before `#`, e.g. `quality_settings_overhangs`, `strength_settings_advanced`). Unknown keys fall back to a **Plugin settings** page.
 
 ## Typed APIs (still supported)
 
@@ -84,6 +85,4 @@ Registered options merge into `print_config_def`, persist in presets, and appear
 
 ## Examples
 
-- `plugins/examples/arc_overhang` — G-code transform demo
-- `plugins/examples/custom_infill` — pipeline infill demo
 - `plugins/examples/round_prime_tower` — wipe tower shape demo

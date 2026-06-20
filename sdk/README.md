@@ -64,14 +64,12 @@ Legacy typed registries (`WallGeneratorRegistry`, `InfillProviderRegistry`, `IWi
 |--------|--------------|
 | `plugins/examples/noop` | Minimal plugin |
 | `plugins/examples/round_prime_tower` | `IWipeTowerShape` |
-| `plugins/examples/arc_overhang` | `GCodeTransformRegistry` |
-| `plugins/examples/custom_infill` | `PipelineStageRegistry` (`infill`) |
 
 Build examples from the Orca tree:
 
 ```bash
 cmake -S . -B build -DORCA_BUILD_EXAMPLE_PLUGINS=ON
-cmake --build build --target orca_arc_overhang orca_custom_infill orca_round_prime_tower
+cmake --build build --target orca_round_prime_tower
 ```
 
 ## Wipe tower API

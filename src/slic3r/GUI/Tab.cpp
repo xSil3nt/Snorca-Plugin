@@ -6943,7 +6943,7 @@ void Tab::apply_plugin_gui_contributions()
         } else {
             if (!fallback_og) {
                 plugin_page = add_options_page(L("Plugin settings"), "custom-gcode_other");
-                fallback_og = plugin_page->new_optgroup(L("Plugin options"), L"param_plugin_settings");
+                fallback_og = plugin_page->new_optgroup(L("Plugin options"), L"param_settings");
             }
             target = fallback_og;
         }

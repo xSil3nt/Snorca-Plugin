@@ -51,7 +51,7 @@ void sync_pipeline_handler(const std::string &stage_id, const std::string &key)
 
 } // namespace
 
-void PipelineStageRegistry::run(const std::string &stage_id, const std::string &key, PipelineStageContext &ctx) const
+bool PipelineStageRegistry::run(const std::string &stage_id, const std::string &key, PipelineStageContext &ctx) const
 {
     PipelineStageHandler handler;
     {
