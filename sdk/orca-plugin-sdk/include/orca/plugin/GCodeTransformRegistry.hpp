@@ -22,7 +22,12 @@ using LayerGCodeTransformFn = std::function<void(LayerGCodeTransformContext &)>;
 class GCodeTransformRegistry
 {
 public:
-    void register_layer_transform(const std::string &key, LayerGCodeTransformFn fn, const std::string &plugin_id = {});
+    void register_layer_transform(const std::string &key, LayerGCodeTransformFn fn, const std::string &plugin_id = {})
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_transforms.push_back({key, std::move(fn), plugin_id});
+    }
+
     void apply_layer_transforms(LayerGCodeTransformContext &ctx) const;
 
 private:

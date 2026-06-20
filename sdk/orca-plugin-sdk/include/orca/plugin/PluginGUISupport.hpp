@@ -23,8 +23,8 @@ struct PluginGUIVisibilityRule
 class PluginGUISupport
 {
 public:
-    void register_option_line(const PluginGUIOptionLine &line);
-    void register_visibility_rule(const PluginGUIVisibilityRule &rule);
+    void register_option_line(const PluginGUIOptionLine &line) { m_option_lines.push_back(line); }
+    void register_visibility_rule(const PluginGUIVisibilityRule &rule) { m_visibility_rules.push_back(rule); }
 
     const std::vector<PluginGUIOptionLine>     &option_lines() const { return m_option_lines; }
     const std::vector<PluginGUIVisibilityRule> &visibility_rules() const { return m_visibility_rules; }

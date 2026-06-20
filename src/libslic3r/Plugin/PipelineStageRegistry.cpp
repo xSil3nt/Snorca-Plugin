@@ -51,15 +51,7 @@ void sync_pipeline_handler(const std::string &stage_id, const std::string &key)
 
 } // namespace
 
-void PipelineStageRegistry::register_handler(const std::string &stage_id, const std::string &key, PipelineStageHandler handler)
-{
-    std::lock_guard<std::mutex> lock(m_mutex);
-    m_handlers[stage_id][key] = std::move(handler);
-    if (m_sync_callback)
-        m_sync_callback(stage_id, key);
-}
-
-bool PipelineStageRegistry::run(const std::string &stage_id, const std::string &key, PipelineStageContext &ctx) const
+void PipelineStageRegistry::run(const std::string &stage_id, const std::string &key, PipelineStageContext &ctx) const
 {
     PipelineStageHandler handler;
     {

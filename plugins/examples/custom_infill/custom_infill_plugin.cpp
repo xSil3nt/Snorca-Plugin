@@ -1,11 +1,14 @@
 #include "orca/plugin/PluginABI.hpp"
 #include "orca/plugin/PluginContext.hpp"
+#include "orca/plugin/ConfigSchemaRegistry.hpp"
 #include "orca/plugin/geometry/ExtrusionTypes.hpp"
 #include "orca/plugin/geometry/Point.hpp"
+#include "orca/plugin/geometry/Types.hpp"
 
 #include <cmath>
 
 using namespace Slic3r;
+using PluginGeo::coord_t;
 
 namespace {
 
